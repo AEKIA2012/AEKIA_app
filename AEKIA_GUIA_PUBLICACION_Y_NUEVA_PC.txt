@@ -1,0 +1,236 @@
+AEKIA APP - GUIA PARA PUBLICAR, ACTUALIZAR Y ABRIR EN UNA NUEVA PC
+==================================================================
+
+Proyecto local principal:
+C:\Users\LCAXA\Documents\Proyectos\aekia-app
+
+Repositorio GitHub:
+https://github.com/AEKIA2012/AEKIA_app.git
+
+Hosting recomendado:
+Vercel gratuito, conectado a GitHub.
+
+IMPORTANTE DE SEGURIDAD
+-----------------------
+1. NO subir .env.local a GitHub.
+2. NO subir la service_role key a GitHub.
+3. En GitHub/Vercel solo usar la publishable/anon key del frontend.
+4. La service_role key solo se usa localmente para scripts administrativos.
+
+Variables frontend necesarias:
+VITE_SUPABASE_URL=https://oriwjxbqghyxhrexcael.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=PEGAR_AQUI_LA_PUBLISHABLE_KEY_DE_SUPABASE
+
+Variable solo para scripts locales:
+SUPABASE_SERVICE_ROLE_KEY=PEGAR_AQUI_SERVICE_ROLE_KEY_SOLO_EN_CMD_LOCAL
+
+
+1. SI CMD DICE QUE GIT NO SE RECONOCE
+-------------------------------------
+Eso significa que Git no esta instalado o no quedo en el PATH.
+
+Paso 1:
+Instalar Git for Windows desde:
+https://git-scm.com/download/win
+
+Paso 2:
+Cerrar completamente VS Code y CMD.
+
+Paso 3:
+Abrir de nuevo VS Code o CMD y probar:
+
+git --version
+
+Si aparece una version, ya quedo.
+
+
+2. SUBIR EL PROYECTO LOCAL A GITHUB
+-----------------------------------
+Abrir CMD:
+
+cd C:\Users\LCAXA\Documents\Proyectos\aekia-app
+
+Revisar si ya existe git:
+
+git status
+
+Si dice que no es repositorio, ejecutar:
+
+git init
+
+git branch -M main
+
+Configurar el repositorio remoto:
+
+git remote -v
+
+Si NO sale origin, ejecutar:
+
+git remote add origin https://github.com/AEKIA2012/AEKIA_app.git
+
+Si SI sale origin pero apunta a otro lado, ejecutar:
+
+git remote set-url origin https://github.com/AEKIA2012/AEKIA_app.git
+
+Subir cambios:
+
+git add .
+git commit -m "Version inicial AEKIA App"
+git push -u origin main
+
+Si al hacer commit dice "nothing to commit", no pasa nada. Significa que no hay cambios nuevos.
+
+Si GitHub pide login, seguir la ventana del navegador. Normalmente Git for Windows instala Git Credential Manager y abre login automatico.
+
+
+3. PUBLICAR EN VERCEL GRATIS
+----------------------------
+Entrar a:
+https://vercel.com
+
+Usar login con GitHub.
+
+Crear proyecto:
+Add New > Project
+
+Seleccionar:
+AEKIA2012/AEKIA_app
+
+Configuracion:
+Framework Preset: Vite
+Root Directory: ./
+Build Command: npm run build
+Output Directory: dist
+Install Command: npm install
+
+Variables de entorno en Vercel:
+
+Key:
+VITE_SUPABASE_URL
+Value:
+https://oriwjxbqghyxhrexcael.supabase.co
+
+Key:
+VITE_SUPABASE_PUBLISHABLE_KEY
+Value:
+PEGAR_AQUI_LA_PUBLISHABLE_KEY_DE_SUPABASE
+
+Environments:
+Production and Preview
+
+Luego click en Deploy.
+
+Si Vercel dice:
+Project "aekia-app" already exists
+
+Tienes dos opciones:
+A) Entrar al proyecto existente en Vercel y usar ese.
+B) Cambiar Project Name a algo unico, por ejemplo:
+aekia-app-ags
+aekia-kendo-app
+aekia2012-app
+
+No es error de codigo; solo significa que ya existe un proyecto con ese nombre en tu cuenta/equipo de Vercel.
+
+
+4. CONFIGURAR SUPABASE PARA LA URL DE VERCEL
+--------------------------------------------
+En Supabase:
+Authentication > URL Configuration
+
+Site URL:
+https://TU-PROYECTO.vercel.app
+
+Redirect URLs:
+http://localhost:5173/*
+https://TU-PROYECTO.vercel.app/*
+
+Guardar.
+
+
+5. ACTUALIZAR LA APP DESPUES DE CAMBIOS
+---------------------------------------
+Cada vez que se hagan cambios en VS Code:
+
+cd C:\Users\LCAXA\Documents\Proyectos\aekia-app
+
+git status
+git add .
+git commit -m "Descripcion del cambio"
+git push
+
+Vercel detecta el push y publica automaticamente.
+
+
+6. ABRIR EL PROYECTO EN UNA NUEVA PC PARA EDITAR
+------------------------------------------------
+En la nueva PC instalar:
+1. Node.js LTS
+2. Git for Windows
+3. VS Code
+
+Clonar el proyecto:
+
+cd C:\Users\TU_USUARIO\Documents\Proyectos
+
+git clone https://github.com/AEKIA2012/AEKIA_app.git
+
+cd AEKIA_app
+
+Crear archivo .env.local en la raiz del proyecto:
+
+VITE_SUPABASE_URL=https://oriwjxbqghyxhrexcael.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=PEGAR_AQUI_LA_PUBLISHABLE_KEY_DE_SUPABASE
+
+Instalar dependencias:
+
+npm install
+
+Correr local:
+
+npm run dev
+
+Abrir:
+http://localhost:5173
+
+
+7. CORRER SCRIPTS ADMINISTRATIVOS EN LOCAL
+------------------------------------------
+Solo cuando necesites scripts como crear usuarios, resetear passwords o importar datos.
+
+En CMD:
+
+cd C:\Users\LCAXA\Documents\Proyectos\aekia-app
+
+set SUPABASE_URL=https://oriwjxbqghyxhrexcael.supabase.co
+set SUPABASE_SERVICE_ROLE_KEY=PEGAR_AQUI_SERVICE_ROLE_KEY_SOLO_EN_CMD_LOCAL
+
+Ejemplos:
+
+node scripts/create-member-auth-users.mjs
+node scripts/reset-member-password.mjs correo@ejemplo.com
+
+NO compartir la service_role key.
+NO pegarla en chats.
+NO subirla a GitHub.
+
+
+8. COMANDOS UTILES
+------------------
+Ver estado de git:
+git status
+
+Ver repositorio remoto:
+git remote -v
+
+Subir cambios:
+git add .
+git commit -m "Cambio"
+git push
+
+Correr app local:
+npm run dev
+
+Crear version de produccion local:
+npm run build
+
