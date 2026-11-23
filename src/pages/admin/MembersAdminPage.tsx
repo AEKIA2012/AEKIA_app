@@ -553,95 +553,32 @@ export default function MembersAdminPage() {
         )}
 
         {!loading && !errorMessage && filteredMembers.length > 0 && (
-          <section className="mt-5 overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-2xl">
-            <div className="overflow-x-auto">
-              <div className="min-w-[1060px]">
-                <div className="grid grid-cols-[90px_260px_150px_170px_170px_160px_120px] border-b border-white/10 bg-slate-900/80 px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-cyan-300">
-                  <div>Acción</div>
-                  <div>Nombre</div>
-                  <div>Dojo</div>
-                  <div>CURP</div>
-                  <div>Correo</div>
-                  <div>Disciplinas</div>
-                  <div>Estatus</div>
-                </div>
-
-                <div className="divide-y divide-white/10">
-                  {filteredMembers.map((member) => {
-                    const dojo = getOne(member.dojos)
-                    const fullName =
-                      `${member.first_names} ${member.paternal_last_name} ${member.maternal_last_name}`.trim()
-
-                    return (
-                      <div
-                        key={member.id}
-                        className="grid grid-cols-[90px_260px_150px_170px_170px_160px_120px] items-center px-4 py-3 text-sm"
-                      >
-                        <div>
-                          <button
-                            type="button"
-                            className="rounded-2xl border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-xs font-semibold text-cyan-100 transition active:scale-[0.98]"
-                            onClick={() =>
-                              navigate(`/admin/members/${member.id}`)
-                            }
-                          >
-                            Ver
-                          </button>
-                        </div>
-
-                        <div className="min-w-0 pr-4">
-                          <p className="truncate font-semibold text-white">
-                            {fullName}
-                          </p>
-
-                          <p className="mt-1 truncate text-xs text-slate-400">
-                            Trabajo/Escuela: {member.work_school_name}
-                          </p>
-
-                          <p className="mt-1 truncate text-xs text-slate-500">
-                            Teléfono: {member.phone || 'Sin teléfono'}
-                          </p>
-                        </div>
-
-                        <div className="min-w-0 pr-4">
-                          <p className="truncate text-xs text-slate-300">
-                            {dojo?.name || 'Sin dojo'}
-                          </p>
-                        </div>
-
-                        <div className="pr-4 text-xs text-slate-300">
-                          {member.curp}
-                        </div>
-
-                        <div className="min-w-0 pr-4">
-                          <p className="truncate text-xs text-slate-300">
-                            {member.email || 'Sin correo'}
-                          </p>
-                        </div>
-
-                        <div className="min-w-0 pr-4">
-                          <p className="truncate text-xs text-slate-300">
-                            {getDisciplinesSummary(member)}
-                          </p>
-                        </div>
-
-                        <div>
-                          <span
-                            className={
-                              member.status === 'active'
-                                ? 'rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-xs font-semibold text-cyan-200'
-                                : 'rounded-full border border-red-400/30 bg-red-400/10 px-3 py-1 text-xs font-semibold text-red-200'
-                            }
-                          >
-                            {member.status === 'active' ? 'Activo' : 'Inactivo'}
-                          </span>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            </div>
+          <section className="mt-5 space-y-3" aria-label="Lista de miembros">
+            {filteredMembers.map((member) => {
+              const dojo = getOne(member.dojos)
+              const memberName = `${member.first_names} ${member.paternal_last_name} ${member.maternal_last_name}`.trim()
+              return (
+                <article key={member.id} className="min-w-0 rounded-3xl border border-white/10 bg-white/5 p-4 shadow-lg">
+                  <div className="flex items-start justify-between gap-3">
+                    <h2 className="min-w-0 break-words text-base font-bold text-white">{memberName}</h2>
+                    <span className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold ${member.status === 'active' ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200' : 'border-red-400/30 bg-red-400/10 text-red-200'}`}>
+                      {member.status === 'active' ? 'Activo' : 'Inactivo'}
+                    </span>
+                  </div>
+                  <dl className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+                    <div><dt className="text-xs text-slate-400">Dojo</dt><dd className="break-words text-slate-100">{dojo?.name || 'Sin dojo'}</dd></div>
+                    <div><dt className="text-xs text-slate-400">Disciplinas</dt><dd className="break-words text-slate-100">{getDisciplinesSummary(member)}</dd></div>
+                    <div><dt className="text-xs text-slate-400">Correo</dt><dd className="break-all text-slate-100">{member.email || 'Sin correo'}</dd></div>
+                    <div><dt className="text-xs text-slate-400">Teléfono</dt><dd className="break-words text-slate-100">{member.phone || 'Sin teléfono'}</dd></div>
+                    <div><dt className="text-xs text-slate-400">CURP</dt><dd className="break-all text-slate-100">{member.curp}</dd></div>
+                    <div><dt className="text-xs text-slate-400">Trabajo / Escuela</dt><dd className="break-words text-slate-100">{member.work_school_name || 'No registrado'}</dd></div>
+                  </dl>
+                  <button type="button" onClick={() => navigate(`/admin/members/${member.id}`)} className="mt-4 w-full rounded-2xl bg-cyan-400 px-4 py-3 text-sm font-bold text-slate-950 transition active:scale-[0.98]">
+                    Ver expediente y acciones
+                  </button>
+                </article>
+              )
+            })}
           </section>
         )}
       </section>

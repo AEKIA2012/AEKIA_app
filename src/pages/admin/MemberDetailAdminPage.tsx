@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import AppLogo from '../../components/AppLogo'
+import SaveConfirmation from '../../components/SaveConfirmation'
 import { permissionImplies, useCurrentAccess } from '../../lib/accessControl'
 import { supabase } from '../../lib/supabaseClient'
 
@@ -82,6 +83,7 @@ function FieldCard({
 
 export default function MemberDetailAdminPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { permissions } = useCurrentAccess()
   const canEdit = permissionImplies(permissions, 'members.edit')
   const { memberId } = useParams()
@@ -90,7 +92,7 @@ export default function MemberDetailAdminPage() {
   const [loading, setLoading] = useState(true)
   const [savingStatus, setSavingStatus] = useState(false)
   const [resettingPassword, setResettingPassword] = useState(false)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(() => (location.state as { aekiaSaved?: string } | null)?.aekiaSaved ?? null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   useEffect(() => {
@@ -282,6 +284,7 @@ export default function MemberDetailAdminPage() {
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
+      <SaveConfirmation message={successMessage} onClose={() => { setSuccessMessage(null); navigate(location.pathname, { replace: true, state: null }) }} />
       <section className="mx-auto min-h-screen w-full max-w-md px-5 py-5">
         <header className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
@@ -368,12 +371,6 @@ export default function MemberDetailAdminPage() {
                   {member.status === 'active' ? 'Activo' : 'Inactivo'}
                 </span>
               </div>
-
-              {successMessage && (
-                <div className="mt-5 rounded-2xl border border-cyan-400/30 bg-cyan-400/10 p-3 text-sm leading-5 text-cyan-100">
-                  {successMessage}
-                </div>
-              )}
 
               {errorMessage && (
                 <div className="mt-5 rounded-2xl border border-red-400/30 bg-red-400/10 p-3 text-sm leading-5 text-red-100">

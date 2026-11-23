@@ -424,7 +424,7 @@ export default function MemberNewAdminPage() {
     }
 
     setSaving(false)
-    navigate(`/admin/members/${insertedMember.id}`)
+    navigate(`/admin/members/${insertedMember.id}`, { state: { aekiaSaved: 'Miembro registrado correctamente.' } })
   }
 
   return (

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import ModuleShell from '../components/ModuleShell'
 import { Field, StatusBadge } from '../components/FormControls'
 import { supabase } from '../lib/supabaseClient'
-import { dayName, formatDate, monthsAgoIso, regulatoryAttendanceStats, todayIso } from '../lib/helpers'
+import { ATTENDANCE_2027_START, attendanceEvaluationStart, dayName, formatDate, monthsAgoIso, regulatoryAttendanceStats, todayIso } from '../lib/helpers'
 import { useCurrentProfile } from '../lib/useCurrentProfile'
 
 type AttendanceRow = {
@@ -18,7 +18,7 @@ type AttendanceRow = {
   } | null
 }
 
-type SessionRow = { id: string; session_date: string; discipline_id: string | null }
+type SessionRow = { id: string; session_date: string; discipline_id: string | null; counts_for_eligibility: boolean }
 type MemberDisciplineRow = { discipline_id: string; practices: boolean }
 
 function percentage(value: number, total: number) { return total <= 0 ? 0 : Math.round((value / total) * 100) }
@@ -47,7 +47,7 @@ function AttendanceVisual({ present, late, absent }: { present: number; late: nu
 
 export default function AttendancePage() {
   const { profile, loadingProfile, profileError } = useCurrentProfile()
-  const [fromDate, setFromDate] = useState(monthsAgoIso(3))
+  const [fromDate, setFromDate] = useState(todayIso() < ATTENDANCE_2027_START ? monthsAgoIso(3) : attendanceEvaluationStart())
   const [toDate, setToDate] = useState(todayIso())
   const [rows, setRows] = useState<AttendanceRow[]>([])
   const [sessions, setSessions] = useState<SessionRow[]>([])
@@ -70,7 +70,7 @@ export default function AttendancePage() {
 
       let sessionQuery = supabase
         .from('attendance_sessions')
-        .select('id, session_date, discipline_id')
+        .select('id, session_date, discipline_id, counts_for_eligibility')
         .gte('session_date', fromDate)
         .lte('session_date', toDate)
         .eq('status', 'active')
@@ -107,9 +107,14 @@ export default function AttendancePage() {
   }, [sessions, sortedRows, memberDisciplines])
 
   return (
-    <ModuleShell title="Mi asistencia" subtitle="Consulta tus asistencias, faltas y retardos." icon="/icons/icon-attendance.png" moduleType="Usuario" version="Asistencia usuario v12">
+    <ModuleShell title="Mi asistencia" subtitle="Consulta tus asistencias, faltas y retardos." icon="/icons/icon-attendance.png" moduleType="Usuario" version="Asistencia usuario v14">
       <div className="grid grid-cols-2 gap-3"><Field label="Desde" type="date" value={fromDate} onChange={setFromDate} /><Field label="Hasta" type="date" value={toDate} onChange={setToDate} /></div>
-      <section className={`rounded-[2rem] border p-5 shadow-2xl ${regulatoryStats.percent >= 100 ? 'border-emerald-400/20 bg-emerald-400/10' : 'border-red-400/30 bg-red-400/10'}`}><div><p className={`text-xs uppercase tracking-[0.3em] ${regulatoryStats.percent >= 100 ? 'text-emerald-300' : 'text-red-200'}`}>Asistencia reglamentaria</p><h2 className="mt-2 text-3xl font-black text-white">{regulatoryStats.percent}%</h2><p className={`mt-1 text-sm font-bold ${regulatoryStats.percent >= 100 ? 'text-emerald-100' : 'text-red-100'}`}>{regulatoryStats.percent >= 100 ? 'Sí cumple asistencia reglamentaria para eventos, exámenes, torneos, etc.' : 'No cumple asistencia reglamentaria para eventos, exámenes, torneos, etc.'}</p><p className="mt-1 text-sm leading-6 text-slate-300">Regla actual: una asistencia puntual cumple la semana. Mínimo hasta 9 semanas cumplidas en 3 meses; si hubo menos semanas reales con clase, el requerido baja. Los retardos no cuentan. Cumplidas: {regulatoryStats.completedWeeks}/{regulatoryStats.requiredAttendances} semanas.</p></div></section>
+      <section className={`rounded-[2rem] border p-5 shadow-2xl ${regulatoryStats.evaluationState !== 'evaluated' ? 'border-amber-400/30 bg-amber-400/10' : regulatoryStats.percent >= 100 ? 'border-emerald-400/20 bg-emerald-400/10' : 'border-red-400/30 bg-red-400/10'}`}>
+        <p className="text-xs uppercase tracking-[0.3em] text-cyan-300">Asistencia reglamentaria 2027</p>
+        <h2 className="mt-2 text-3xl font-black text-white">{regulatoryStats.evaluationState === 'evaluated' ? `${regulatoryStats.percent}%` : 'Sin evaluación'}</h2>
+        <p className="mt-1 text-sm font-bold text-white">{regulatoryStats.evaluationState === 'not_started' ? 'La evaluación inicia el 1 de enero de 2027.' : regulatoryStats.evaluationState === 'no_classes' ? 'No hay semanas confirmadas con clase para evaluar.' : regulatoryStats.percent >= 100 ? 'Cumple asistencia reglamentaria.' : 'No cumple asistencia reglamentaria.'}</p>
+        <p className="mt-1 text-sm leading-6 text-slate-300">Una asistencia puntual cumple la semana; se requiere 75% de las semanas impartidas del mes. Las canceladas y pendientes no cuentan. Cumplidas: {regulatoryStats.completedWeeks}/{regulatoryStats.requiredAttendances} semanas evaluables. Puedes consultar fechas anteriores ajustando el rango.</p>
+      </section>
       <AttendanceVisual present={stats.present} late={stats.late} absent={stats.absent} />
       {loading && <section className="rounded-3xl border border-white/10 bg-white/5 p-5 text-center text-sm text-slate-300">Cargando asistencia...</section>}
       {errorMessage && <section className="rounded-3xl border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-100">{errorMessage}</section>}

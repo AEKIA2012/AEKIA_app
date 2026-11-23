@@ -28,9 +28,12 @@ type DashboardState = {
   paymentDebtCount: number
   eventEligible: boolean
   attendanceOk: boolean
+  evaluationState: 'not_started' | 'no_classes' | 'evaluated'
   paymentsOk: boolean
   loading: boolean
 }
+
+type ActiveRole = { id: string; code: string; name: string }
 
 type ProfileOption = {
   id: string
@@ -88,6 +91,10 @@ function DashboardCard({ dashboard }: { dashboard: DashboardState }) {
   const hasDebt = dashboard.paymentDebtCount > 0
   const percent = Math.min(Math.max(dashboard.attendancePercent, 0), 100)
   const eligible = dashboard.eventEligible
+  const hasEvaluation = dashboard.evaluationState === 'evaluated'
+  const pendingMessage = dashboard.evaluationState === 'not_started'
+    ? 'La evaluación reglamentaria empieza el 1 de enero de 2027.'
+    : 'Todavía no hay semanas con clase realizada para evaluar.'
 
   return (
     <section className="mt-5 rounded-[2rem] border border-cyan-400/20 bg-gradient-to-br from-cyan-400/15 to-white/5 p-5 shadow-2xl">
@@ -98,22 +105,22 @@ function DashboardCard({ dashboard }: { dashboard: DashboardState }) {
             <circle cx="18" cy="18" r="15.5" fill="none" stroke="rgba(148,163,184,.25)" strokeWidth="4" />
             <circle cx="18" cy="18" r="15.5" fill="none" stroke="currentColor" strokeDasharray={`${percent} 100`} strokeLinecap="round" strokeWidth="4" className="text-cyan-300" />
           </svg>
-          <span className="absolute text-lg font-black text-white">{dashboard.loading ? '...' : `${percent}%`}</span>
+          <span className="absolute text-lg font-black text-white">{dashboard.loading ? '...' : hasEvaluation ? `${percent}%` : '—'}</span>
         </div>
         <div className="min-w-0 space-y-3">
           <div>
             <p className="text-sm font-bold text-white">Asistencia reglamentaria</p>
             <p className="mt-1 text-xs leading-5 text-slate-300">
-              Últimos 3 meses: {dashboard.completedWeeks}/{dashboard.requiredAttendances || dashboard.totalWeeks} semanas reglamentarias cumplidas. Se piden hasta 3 por mes; si hubo menos clases, baja el requerido. Los retardos no cuentan.
+              {hasEvaluation ? `Últimos 3 meses evaluables: ${dashboard.completedWeeks}/${dashboard.requiredAttendances} semanas cumplidas. Se exige 75% de semanas con clase realizada; una asistencia puntual completa la semana.` : pendingMessage}
             </p>
           </div>
           <div className={`rounded-2xl border p-3 ${hasDebt ? 'border-red-400/30 bg-red-400/10 text-red-100' : 'border-emerald-400/30 bg-emerald-400/10 text-emerald-100'}`}>
             <p className="text-sm font-bold">{hasDebt ? 'Tienes adeudo' : 'Sin adeudo actual'}</p>
             <p className="mt-1 text-xs opacity-90">{hasDebt ? `${dashboard.paymentDebtCount} mensualidad(es) u otro(s) cargo(s) vencido(s).` : 'Mensualidades y otros cargos vencidos al corriente.'}</p>
           </div>
-          <div className={`rounded-2xl border p-3 ${eligible ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-100' : 'border-red-400/30 bg-red-400/10 text-red-100'}`}>
-            <p className="text-sm font-bold">{eligible ? 'Apto para eventos, exámenes, torneos, etc.' : 'No apto para eventos, exámenes, torneos, etc.'}</p>
-            <p className="mt-1 text-xs opacity-90">{eligible ? 'Cumple asistencia reglamentaria y pagos vencidos.' : 'Debe cumplir asistencia puntual reglamentaria y no tener adeudos vencidos.'}</p>
+          <div className={`rounded-2xl border p-3 ${!hasEvaluation ? 'border-amber-400/30 bg-amber-400/10 text-amber-100' : eligible ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-100' : 'border-red-400/30 bg-red-400/10 text-red-100'}`}>
+            <p className="text-sm font-bold">{!hasEvaluation ? 'Elegibilidad pendiente de evaluación' : eligible ? 'Apto para eventos, exámenes, torneos, etc.' : 'No apto para eventos, exámenes, torneos, etc.'}</p>
+            <p className="mt-1 text-xs opacity-90">{!hasEvaluation ? pendingMessage : eligible ? 'Cumple asistencia reglamentaria y pagos vencidos.' : 'Debe cumplir asistencia puntual reglamentaria y no tener adeudos vencidos.'}</p>
           </div>
         </div>
       </div>
@@ -130,6 +137,7 @@ const emptyDashboard: DashboardState = {
   paymentDebtCount: 0,
   eventEligible: false,
   attendanceOk: false,
+  evaluationState: 'not_started',
   paymentsOk: false,
   loading: true,
 }
@@ -148,6 +156,7 @@ function alertClasses(type: AlertRow['type']) {
 export default function MainMenuPage() {
   const navigate = useNavigate()
   const [displayName, setDisplayName] = useState('Usuario AEKIA')
+  const [roleNames, setRoleNames] = useState<string[]>([])
   const [ownPermissions, setOwnPermissions] = useState<string[]>([])
   const [permissions, setPermissions] = useState<string[]>([])
   const [showAlerts, setShowAlerts] = useState(false)
@@ -175,6 +184,7 @@ export default function MainMenuPage() {
         paymentDebtCount: Number(eligibility.payment_debt_count ?? 0),
         eventEligible: Boolean(eligibility.eligible),
         attendanceOk: Boolean(eligibility.attendance_ok),
+        evaluationState: eligibility.evaluation_state,
         paymentsOk: Boolean(eligibility.payments_ok),
         loading: false,
       })
@@ -240,6 +250,12 @@ export default function MainMenuPage() {
     }
 
     setPermissions(effectivePermissions)
+    if (dashboardProfile?.id) {
+      const { data: rolesData } = await supabase.rpc('aekia_roles_for_profile', { p_profile_id: dashboardProfile.id })
+      setRoleNames(Array.isArray(rolesData) ? (rolesData as ActiveRole[]).map((item) => item.name) : [])
+    } else {
+      setRoleNames([])
+    }
     const label = dashboardProfile?.display_name || dashboardProfile?.email || 'Usuario AEKIA'
     setDisplayName(selectedId ? `Visualizando: ${label}` : label)
     await loadDashboardForMember(dashboardProfile?.member_id)
@@ -328,6 +344,13 @@ export default function MainMenuPage() {
         </header>
 
         {permissionError && <section className="mt-5 rounded-[2rem] border border-amber-400/30 bg-amber-400/10 p-4 text-sm text-amber-100">No se pudieron cargar permisos: {permissionError}</section>}
+
+        <section className="mt-5 rounded-3xl border border-cyan-400/35 bg-cyan-400/10 px-4 py-3 shadow-lg" aria-label="Roles activos">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">{impersonatedProfileId ? 'Roles del perfil visualizado' : 'Mis roles activos'}</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {roleNames.length > 0 ? roleNames.map((role) => <span key={role} className="rounded-full border border-cyan-300/30 bg-slate-950/70 px-3 py-1.5 text-sm font-bold text-white">{role}</span>) : <span className="text-sm text-slate-300">Sin roles disponibles · aplica primero SQL v14</span>}
+          </div>
+        </section>
 
         {canViewAs && (
           <section className="mt-5 rounded-[2rem] border border-emerald-400/20 bg-emerald-400/10 p-5 shadow-2xl">

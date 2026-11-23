@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import ModuleShell from '../../components/ModuleShell'
+import SaveConfirmation from '../../components/SaveConfirmation'
 import { Field, ModalPanel, PrimaryButton, SelectField, StatusBadge, TextArea } from '../../components/FormControls'
 import { permissionImplies, useCurrentAccess } from '../../lib/accessControl'
 import { supabase } from '../../lib/supabaseClient'
@@ -46,7 +47,6 @@ export default function AdminRolesPage() {
 
   async function loadData() {
     setErrorMessage(null)
-    setSuccessMessage(null)
     let roleQuery = supabase.from('roles').select('id, code, name, description, status').order('name', { ascending: true })
     if (statusFilter !== 'all') roleQuery = roleQuery.eq('status', statusFilter)
     const { data: roleData, error: roleError } = await roleQuery
@@ -90,7 +90,6 @@ export default function AdminRolesPage() {
     if (error) { setErrorMessage(error.message); return }
     setNewRoleName(''); setNewRoleDescription('')
     setSuccessMessage('Rol creado correctamente.')
-    window.scrollTo({ top: 0, behavior: 'smooth' })
     await loadData()
   }
 
@@ -100,7 +99,6 @@ export default function AdminRolesPage() {
     if (error) { setErrorMessage(error.message); return }
     setSelectedRole(null)
     setSuccessMessage('Rol guardado correctamente.')
-    window.scrollTo({ top: 0, behavior: 'smooth' })
     await loadData()
   }
 
@@ -169,7 +167,7 @@ export default function AdminRolesPage() {
   return (
     <ModuleShell title="Roles y permisos" subtitle="Crea roles, asigna usuarios y asigna privilegios por módulo." icon="/icons/icon-roles.png" moduleType="Gestión" version="Roles v09">
       {errorMessage && <section className="rounded-3xl border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-100">{errorMessage}</section>}
-      {successMessage && <section className="rounded-3xl border border-emerald-400/30 bg-emerald-400/10 p-4 text-sm text-emerald-100">{successMessage}</section>}
+      <SaveConfirmation message={successMessage} onClose={() => setSuccessMessage(null)} />
       {canEdit && <section className="rounded-[2rem] border border-white/10 bg-white/5 p-5 shadow-2xl"><p className="text-xs uppercase tracking-[0.3em] text-cyan-300">Nuevo rol</p><div className="mt-4 space-y-4"><Field label="Rol" value={newRoleName} onChange={setNewRoleName} /><TextArea label="Descripción" value={newRoleDescription} onChange={setNewRoleDescription} rows={3} /><PrimaryButton onClick={createRole}>Crear rol</PrimaryButton></div></section>}
       {!canEdit && <section className="rounded-3xl border border-amber-400/30 bg-amber-400/10 p-4 text-sm leading-6 text-amber-100">Modo consulta: puedes revisar roles y asignaciones, pero no modificarlos.</section>}
       <SelectField label="Estatus" value={statusFilter} onChange={setStatusFilter} options={[{ value: 'active', label: 'Activos' }, { value: 'inactive', label: 'Inactivos' }, { value: 'all', label: 'Todos' }]} />
