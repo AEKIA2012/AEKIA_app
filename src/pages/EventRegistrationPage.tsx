@@ -62,7 +62,7 @@ export default function EventRegistrationPage() {
   }
 
   return (
-    <ModuleShell title="Registro a evento" subtitle="Regístrate o sal de eventos activos." icon="/icons/icon-events.png" moduleType="Usuario" version="Registro eventos v14">
+    <ModuleShell title="Registro a evento" subtitle="Regístrate o sal de eventos activos." icon="/icons/icon-events.png" moduleType="Usuario" version="Registro eventos v13">
       {eligibility && <section className={`rounded-[2rem] border p-5 shadow-2xl ${eligibility.eligible ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-100' : 'border-red-400/30 bg-red-400/10 text-red-100'}`}><p className="text-sm font-bold">{eligibility.eligible ? 'Apto para eventos, exámenes, torneos, etc.' : 'No apto para eventos, exámenes, torneos, etc.'}</p><p className="mt-2 text-xs leading-5 opacity-90">Asistencia puntual reglamentaria: {eligibility.attendance_percent}% ({eligibility.completed_weeks}/{eligibility.required_attendances ?? eligibility.total_class_weeks} requeridas). Adeudos vencidos: {eligibility.payment_debt_count}.</p></section>}
       {loading && <section className="rounded-3xl border border-white/10 bg-white/5 p-5 text-center text-sm text-slate-300">Cargando eventos...</section>}
       {errorMessage && <section className="rounded-3xl border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-100">{errorMessage}</section>}

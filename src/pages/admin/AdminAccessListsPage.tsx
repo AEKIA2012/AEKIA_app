@@ -60,6 +60,7 @@ function genderJp(member: MemberOptionRow | null) {
 }
 
 function exportJapaneseAccessList(list: AccessListRow, members: AccessMemberRow[], externalPeople: ExternalPersonRow[]) {
+  const today = new Date().toLocaleDateString('es-MX')
   const allRows = [
     ...members.map((item) => ({
       name: fullName(item.members ?? {}),
@@ -86,7 +87,11 @@ function exportJapaneseAccessList(list: AccessListRow, members: AccessMemberRow[
         cell(n, 'number', { index: 2, mergeDown: 5 }) +
           cell(item.name, 'yellowLeft', { mergeDown: 1 }) +
           cell(item.genderEs, 'yellowCenter', { mergeDown: 1 }) +
-          cell(item.work, 'yellowCenter', { mergeAcross: 3, mergeDown: 1 }),
+          cell(item.work, 'yellowCenter', { mergeAcross: 3, mergeDown: 1 }) +
+          cell('', 'sign', { mergeDown: 5 }) +
+          cell('', 'sign', { mergeDown: 5 }) +
+          cell('', 'sign', { mergeDown: 5 }) +
+          cell('', 'sign', { mergeDown: 5 }),
         12,
       ),
       row('', 12),
@@ -102,8 +107,6 @@ function exportJapaneseAccessList(list: AccessListRow, members: AccessMemberRow[
     ].join('\n')
   }).join('\n')
 
-  const blankRowsBeforeTemplate = [row('', 12), row('', 12), row('', 12), row('', 12), row('', 12)].join('\n')
-
   const xml = `<?xml version="1.0"?>
 <?mso-application progid="Excel.Sheet"?>
 <Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
@@ -114,6 +117,7 @@ function exportJapaneseAccessList(list: AccessListRow, members: AccessMemberRow[
  <Styles>
   <Style ss:ID="blank"><Font ss:FontName="Arial" ss:Size="9"/></Style>
   <Style ss:ID="normal"><Font ss:FontName="Arial" ss:Size="9"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/></Borders><Alignment ss:Vertical="Center" ss:WrapText="1"/></Style>
+  <Style ss:ID="topBlue"><Font ss:FontName="Arial" ss:Size="11" ss:Bold="1"/><Interior ss:Color="#DDEBF7" ss:Pattern="Solid"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/></Borders><Alignment ss:Vertical="Center" ss:WrapText="1"/></Style>
   <Style ss:ID="cyanHeader"><Font ss:FontName="Yu Gothic" ss:Size="18"/><Interior ss:Color="#CCFFFF" ss:Pattern="Solid"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/></Borders><Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/></Style>
   <Style ss:ID="yellowHeader"><Font ss:FontName="Arial" ss:Size="11" ss:Bold="1"/><Interior ss:Color="#FFFF00" ss:Pattern="Solid"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/></Borders><Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/></Style>
   <Style ss:ID="blueHeader"><Font ss:FontName="Yu Gothic" ss:Size="12"/><Interior ss:Color="#CCFFFF" ss:Pattern="Solid"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/></Borders><Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/></Style>
@@ -122,9 +126,10 @@ function exportJapaneseAccessList(list: AccessListRow, members: AccessMemberRow[
   <Style ss:ID="yellowCenter"><Font ss:FontName="Arial" ss:Size="9"/><Interior ss:Color="#FFFF00" ss:Pattern="Solid"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/></Borders><Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/></Style>
   <Style ss:ID="cyanLeft"><Font ss:FontName="Yu Gothic" ss:Size="9"/><Interior ss:Color="#CCFFFF" ss:Pattern="Solid"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/></Borders><Alignment ss:Vertical="Center" ss:WrapText="1"/></Style>
   <Style ss:ID="cyanCenter"><Font ss:FontName="Yu Gothic" ss:Size="9"/><Interior ss:Color="#CCFFFF" ss:Pattern="Solid"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/></Borders><Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/></Style>
+  <Style ss:ID="sign"><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/></Borders><Alignment ss:Vertical="Center"/></Style>
  </Styles>
  <Worksheet ss:Name="${xmlEscape(list.name).slice(0, 31)}">
-  <Table ss:ExpandedColumnCount="8">
+  <Table>
    <Column ss:Width="16"/>
    <Column ss:Width="35"/>
    <Column ss:Width="230"/>
@@ -133,10 +138,17 @@ function exportJapaneseAccessList(list: AccessListRow, members: AccessMemberRow[
    <Column ss:Width="105"/>
    <Column ss:Width="50"/>
    <Column ss:Width="72"/>
-   ${blankRowsBeforeTemplate}
-   ${row(cell('利用者数', 'cyanHeader', { index: 2, mergeAcross: 1 }) + cell(`${allRows.length}名`, 'cyanHeader', { mergeAcross: 4 }), 42)}
-   ${row(cell('', 'yellowHeader', { index: 2, mergeDown: 1 }) + cell('Nombre de los participantes', 'yellowHeader') + cell('sexo', 'yellowHeader') + cell('Nombre de empresa\no escuela', 'yellowHeader', { mergeAcross: 3 }), 40)}
-   ${row(cell('参加者氏名', 'blueHeader', { index: 3 }) + cell('性別', 'blueHeader') + cell('参加者の企業名、学校名', 'blueHeader', { mergeAcross: 3 }), 24)}
+   <Column ss:Width="112"/>
+   <Column ss:Width="112"/>
+   <Column ss:Width="112"/>
+   <Column ss:Width="112"/>
+   ${row(cell('Recepción de visitas externas y lista de chequeo', 'topBlue', { index: 2, mergeAcross: 6 }) + cell('Fecha / 日付', 'normal') + cell(today, 'normal', { mergeAcross: 3 }), 24)}
+   ${row(cell('学校開放受付&チェックリスト', 'topBlue', { index: 2, mergeAcross: 6 }) + cell(`Lista: ${list.name}`, 'normal', { mergeAcross: 3 }), 24)}
+   ${row(cell('El nombre de grupo externos: AGS KenyuKai (Kendo)   Representante: Yasuhiro Shimizu / Luis Carlos Aguilar García / Juan Carlos Amador Robles', 'normal', { index: 2, mergeAcross: 10 }), 24)}
+   ${row(cell('Numero de participantes', 'normal', { index: 2, mergeAcross: 6 }) + cell('check de limpieza', 'normal', { mergeAcross: 1 }) + cell('check de Instalacion y equipos', 'normal', { mergeAcross: 1 }), 24)}
+   ${row(cell(`利用者数                         名`, 'cyanHeader', { index: 2, mergeAcross: 1 }) + cell(`${allRows.length}名`, 'cyanHeader', { mergeAcross: 4 }) + cell('清掃チェック', 'cyanHeader', { mergeAcross: 1 }) + cell('施設設備破損チェック', 'cyanHeader', { mergeAcross: 1 }), 42)}
+   ${row(cell('', 'yellowHeader', { index: 2, mergeDown: 2 }) + cell('Nombre de los participantes', 'yellowHeader') + cell('sexo', 'yellowHeader') + cell('Nombre de empresa\no escuela', 'yellowHeader', { mergeAcross: 3 }) + cell('Firma', 'yellowHeader') + cell('Hora de\nentrada', 'yellowHeader') + cell('Firma', 'yellowHeader') + cell('Hora de\nsalida', 'yellowHeader'), 40)}
+   ${row(cell('参加者氏名', 'blueHeader', { index: 3, mergeDown: 1 }) + cell('性別', 'blueHeader', { mergeDown: 1 }) + cell('参加者の企業名、学校名', 'blueHeader', { mergeAcross: 3, mergeDown: 1 }) + cell('入場時サイン', 'blueHeader') + cell('入場時刻', 'blueHeader') + cell('退場時サイン', 'blueHeader') + cell('退場時刻', 'blueHeader'), 24)}
    ${row('', 12)}
    ${participantRows}
   </Table>
@@ -410,7 +422,7 @@ export default function AdminAccessListsPage() {
   }
 
   return (
-    <ModuleShell title="Listas de acceso" subtitle="Administra listas, miembros, externos y exportación japonesa." icon="/icons/icon-access-lists.png" moduleType="Gestión" version="Listas acceso v15">
+    <ModuleShell title="Listas de acceso" subtitle="Administra listas, miembros, externos y exportación japonesa." icon="/icons/icon-access-lists.png" moduleType="Gestión" version="Listas acceso v13">
       {errorMessage && <section className="rounded-3xl border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-100">{errorMessage}</section>}
       {successMessage && <section className="rounded-3xl border border-emerald-400/30 bg-emerald-400/10 p-4 text-sm text-emerald-100">{successMessage}</section>}
 

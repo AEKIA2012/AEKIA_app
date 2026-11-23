@@ -72,7 +72,7 @@ function AdminAttendanceVisual({ records, members, sessions, memberDisciplines }
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-cyan-300">Vista general</p>
           <h2 className="mt-2 text-2xl font-bold">{scorePercent}%</h2>
-          <p className="mt-1 text-sm text-slate-300">global por registros del rango</p><p className="mt-1 text-xs text-emerald-200">Reglamentaria: {averageRegulatory}% · hasta 3 asistencias puntuales por mes; retardos no cuentan.</p>
+          <p className="mt-1 text-sm text-slate-300">global por registros del rango</p><p className="mt-1 text-xs text-emerald-200">Reglamentaria: {averageRegulatory}% · una asistencia puntual cumple la semana; máximo 9 semanas requeridas en 3 meses.</p>
         </div>
 
         <div className="grid grid-cols-3 gap-2 text-center text-xs sm:min-w-[180px]">
