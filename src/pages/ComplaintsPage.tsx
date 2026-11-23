@@ -53,7 +53,7 @@ export default function ComplaintsPage() {
     setRows((data ?? []) as ComplaintRow[])
   }
 
-  useEffect(() => { loadComplaints() }, [statusFilter, loadingProfile, profile, profileError])
+  useEffect(() => { const timer = window.setTimeout(() => { void loadComplaints() }, 0); return () => window.clearTimeout(timer) }, [statusFilter, loadingProfile, profile, profileError])
 
   async function handleSubmit() {
     if (!profile) return

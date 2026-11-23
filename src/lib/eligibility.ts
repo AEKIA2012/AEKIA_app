@@ -18,7 +18,7 @@ export type MemberEligibility = {
 }
 
 export async function loadMemberEligibility(memberId: string): Promise<MemberEligibility> {
-  const { data, error } = await supabase.rpc('aekia_member_event_eligibility', { p_member_id: memberId })
+  const { data, error } = await supabase.rpc('aekia_authorized_member_event_eligibility', { p_member_id: memberId })
   if (error) throw error
   if (!data || typeof data !== 'object' || !('evaluation_state' in data)) {
     throw new Error('La migración de asistencia v14 todavía no está instalada en Supabase.')

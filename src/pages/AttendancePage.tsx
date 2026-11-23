@@ -110,10 +110,10 @@ export default function AttendancePage() {
     <ModuleShell title="Mi asistencia" subtitle="Consulta tus asistencias, faltas y retardos." icon="/icons/icon-attendance.png" moduleType="Usuario" version="Asistencia usuario v14">
       <div className="grid grid-cols-2 gap-3"><Field label="Desde" type="date" value={fromDate} onChange={setFromDate} /><Field label="Hasta" type="date" value={toDate} onChange={setToDate} /></div>
       <section className={`rounded-[2rem] border p-5 shadow-2xl ${regulatoryStats.evaluationState !== 'evaluated' ? 'border-amber-400/30 bg-amber-400/10' : regulatoryStats.percent >= 100 ? 'border-emerald-400/20 bg-emerald-400/10' : 'border-red-400/30 bg-red-400/10'}`}>
-        <p className="text-xs uppercase tracking-[0.3em] text-cyan-300">Asistencia reglamentaria 2027</p>
+        <p className="text-xs uppercase tracking-[0.3em] text-cyan-300">Mi asistencia</p>
         <h2 className="mt-2 text-3xl font-black text-white">{regulatoryStats.evaluationState === 'evaluated' ? `${regulatoryStats.percent}%` : 'Sin evaluación'}</h2>
-        <p className="mt-1 text-sm font-bold text-white">{regulatoryStats.evaluationState === 'not_started' ? 'La evaluación inicia el 1 de enero de 2027.' : regulatoryStats.evaluationState === 'no_classes' ? 'No hay semanas confirmadas con clase para evaluar.' : regulatoryStats.percent >= 100 ? 'Cumple asistencia reglamentaria.' : 'No cumple asistencia reglamentaria.'}</p>
-        <p className="mt-1 text-sm leading-6 text-slate-300">Una asistencia puntual cumple la semana; se requiere 75% de las semanas impartidas del mes. Las canceladas y pendientes no cuentan. Cumplidas: {regulatoryStats.completedWeeks}/{regulatoryStats.requiredAttendances} semanas evaluables. Puedes consultar fechas anteriores ajustando el rango.</p>
+        <p className="mt-1 text-sm font-bold text-white">{regulatoryStats.evaluationState !== 'evaluated' ? 'Sin clases evaluables' : regulatoryStats.percent >= 100 ? 'Asistencia al corriente' : 'Asistencia insuficiente'}</p>
+        {regulatoryStats.evaluationState === 'evaluated' && <p className="mt-1 text-sm text-slate-300">{regulatoryStats.completedWeeks}/{regulatoryStats.requiredAttendances} semanas cumplidas</p>}
       </section>
       <AttendanceVisual present={stats.present} late={stats.late} absent={stats.absent} />
       {loading && <section className="rounded-3xl border border-white/10 bg-white/5 p-5 text-center text-sm text-slate-300">Cargando asistencia...</section>}

@@ -69,7 +69,7 @@ export default function AdminEventsPage() {
     setRegistrations((data ?? []) as unknown as RegistrationRow[])
   }
 
-  useEffect(() => { loadEvents() }, [statusFilter])
+  useEffect(() => { const timer = window.setTimeout(() => { void loadEvents() }, 0); return () => window.clearTimeout(timer) }, [statusFilter])
 
   async function createEvent() {
     if (!canEdit) { setErrorMessage('Tu rol permite consultar eventos, pero no crearlos.'); return }

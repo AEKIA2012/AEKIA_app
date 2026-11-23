@@ -216,7 +216,7 @@ export default function AdminAccessListsPage() {
     setExternalPeople((externalData ?? []) as ExternalPersonRow[])
   }
 
-  useEffect(() => { loadLists(); loadMemberOptions() }, [statusFilter])
+  useEffect(() => { const timer = window.setTimeout(() => { void loadLists(); void loadMemberOptions() }, 0); return () => window.clearTimeout(timer) }, [statusFilter])
 
   const availableMemberOptions = useMemo(() => {
     const assignedIds = new Set(members.map((member) => member.member_id))

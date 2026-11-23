@@ -92,6 +92,7 @@ export default function MemberDetailAdminPage() {
   const [loading, setLoading] = useState(true)
   const [savingStatus, setSavingStatus] = useState(false)
   const [resettingPassword, setResettingPassword] = useState(false)
+  const [preparingAccess, setPreparingAccess] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(() => (location.state as { aekiaSaved?: string } | null)?.aekiaSaved ?? null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -262,6 +263,19 @@ export default function MemberDetailAdminPage() {
     setResettingPassword(false)
   }
 
+  async function handlePrepareAccess() {
+    if (!canEdit || !member || preparingAccess) return
+    setErrorMessage(null)
+    setSuccessMessage(null)
+    setPreparingAccess(true)
+    const {error} = await supabase.rpc('aekia_admin_prepare_member_access', {
+      p_member_id:member.id,
+    })
+    setPreparingAccess(false)
+    if (error) {setErrorMessage(error.message);return}
+    setSuccessMessage('Acceso preparado. El miembro puede abrir /register → Activar acceso, confirmar su correo y entrar.')
+  }
+
   const fullName = member
     ? `${member.first_names} ${member.paternal_last_name} ${member.maternal_last_name}`.trim()
     : ''
@@ -420,6 +434,15 @@ export default function MemberDetailAdminPage() {
                     {resettingPassword
                       ? 'Reiniciando password...'
                       : 'Reiniciar password a 12345678'}
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={preparingAccess}
+                    className="rounded-2xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-cyan-200 transition active:scale-[0.98] disabled:opacity-60"
+                    onClick={handlePrepareAccess}
+                  >
+                    {preparingAccess ? 'Preparando acceso...' : 'Preparar acceso de usuario'}
                   </button>
                 </div>
               )}

@@ -65,7 +65,7 @@ export default function AdminAuditLogsPage() {
     setRows((data ?? []) as unknown as AuditRow[])
   }
 
-  useEffect(() => { loadRows() }, [])
+  useEffect(() => { const timer = window.setTimeout(() => { void loadRows() }, 0); return () => window.clearTimeout(timer) }, [])
 
   const filteredRows = useMemo(() => {
     const clean = search.trim().toLowerCase()

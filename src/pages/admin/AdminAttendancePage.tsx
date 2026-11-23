@@ -56,6 +56,7 @@ export default function AdminAttendancePage() {
   const [selectedSessionId, setSelectedSessionId] = useState('')
   const [selectedMemberId, setSelectedMemberId] = useState('')
   const [searchText, setSearchText] = useState('')
+  const [showAllMembers, setShowAllMembers] = useState(false)
   const [savingKey, setSavingKey] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -175,7 +176,7 @@ export default function AdminAttendancePage() {
     if (newDate < fromDate) setFromDate(newDate)
     if (newDate > toDate) setToDate(newDate)
     await loadData()
-    setSuccessMessage('Entrenamiento guardado. Confirma cuando realmente se imparta para que cuente en la asistencia.')
+    setSuccessMessage('Entrenamiento programado.')
   }
 
   function exportExcel() {
@@ -190,7 +191,7 @@ export default function AdminAttendancePage() {
     const current = getRecord(member.id, session.id)?.attendance_status ?? ''
     return (
       <select aria-label={`Asistencia de ${fullName(member)} el ${formatDate(session.session_date)}`}
-        value={current} disabled={!canEdit || savingKey === key || session.status === 'cancelled'}
+        value={current} disabled={!canEdit || savingKey === key || session.status === 'cancelled' || session.session_date > todayIso()}
         onChange={(event) => setAttendance(member.id, session.id, event.target.value)}
         className={`w-full rounded-xl border px-3 py-2 text-sm font-semibold outline-none disabled:opacity-50 ${current === 'present' ? 'border-cyan-300 bg-cyan-300 text-slate-950' : current === 'late' ? 'border-amber-300 bg-amber-300 text-slate-950' : current === 'absent' ? 'border-red-400/40 bg-red-400/15 text-red-100' : 'border-white/20 bg-slate-900 text-slate-200'}`}>
         {statusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
@@ -199,7 +200,7 @@ export default function AdminAttendancePage() {
   }
 
   return (
-    <ModuleShell title="Control de asistencia" subtitle="Pasa lista por fecha, corrige personas y confirma entrenamientos." icon="/icons/icon-attendance-admin.png" moduleType="Gestión" version="Control asistencia v14">
+    <ModuleShell title="Control de asistencia" subtitle="Registro de entrenamientos y asistencia" icon="/icons/icon-attendance-admin.png" moduleType="Gestión" version="Control asistencia v14.1">
       <SaveConfirmation message={successMessage} onClose={() => setSuccessMessage(null)} />
       {!canEdit && <section className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4 text-sm text-amber-100">Modo consulta: tu rol permite ver y exportar, pero no modificar asistencia.</section>}
       <section className="grid grid-cols-2 gap-3"><Field label="Desde" type="date" value={fromDate} onChange={setFromDate} /><Field label="Hasta" type="date" value={toDate} onChange={setToDate} /></section>
@@ -214,24 +215,28 @@ export default function AdminAttendancePage() {
           {selectedSession && <>
             <section className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-sm text-slate-200">
               <p className="font-bold">{sessionName(selectedSession)}</p>
-              <p className="mt-1 text-xs">{selectedSession.status === 'cancelled' ? 'Cancelada: no computa asistencia.' : selectedSession.counts_for_eligibility ? 'Clase realizada: cuenta para las semanas reglamentarias.' : 'Pendiente de confirmar como realizada: todavía no cuenta.'}</p>
+              <p className="mt-1 text-xs">{selectedSession.status === 'cancelled' ? 'Cancelada' : selectedSession.counts_for_eligibility ? 'Realizada' : 'Programada'}</p>
+              {canEdit && selectedSession.status === 'active' && <button type="button" disabled={savingKey === selectedSession.id || selectedSession.session_date > todayIso()} onClick={() => updateSession(selectedSession, { counts_for_eligibility: !selectedSession.counts_for_eligibility })} className="mt-3 rounded-xl border border-cyan-300/50 bg-cyan-300 px-4 py-2 text-xs font-bold text-slate-950 disabled:opacity-40">{selectedSession.counts_for_eligibility ? 'Marcar pendiente' : 'Confirmar realizada'}</button>}
             </section>
             <Field label="Buscar integrante" value={searchText} onChange={setSearchText} placeholder="Escribe un nombre" />
+            <label className="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" checked={showAllMembers} onChange={(event) => setShowAllMembers(event.target.checked)} />Mostrar todos los miembros</label>
             <section className="space-y-2">
-              {filteredMembers.filter((member) => memberPractices(member.id, selectedSession.discipline_id)).map((member) => <article key={member.id} className="rounded-2xl border border-white/10 bg-white/5 p-3">
+              {filteredMembers.filter((member) => showAllMembers || memberPractices(member.id, selectedSession.discipline_id)).map((member) => <article key={member.id} className="rounded-2xl border border-white/10 bg-white/5 p-3">
                 <p className="mb-2 break-words text-sm font-semibold">{fullName(member)}</p>
                 {attendanceSelector(member, selectedSession)}
               </article>)}
+              {filteredMembers.filter((member) => showAllMembers || memberPractices(member.id, selectedSession.discipline_id)).length === 0 && <p className="text-sm text-slate-400">No hay integrantes con estos filtros.</p>}
             </section>
           </>}
           {!selectedSession && <p className="rounded-2xl border border-white/10 p-4 text-sm text-slate-300">Todavía no hay entrenamientos en este rango. Ve a Calendario para crear uno.</p>}
         </>}
         {tab === 'por_persona' && <>
           <Field label="Buscar integrante" value={searchText} onChange={setSearchText} placeholder="Nombre de integrante" />
+          <label className="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" checked={showAllMembers} onChange={(event) => setShowAllMembers(event.target.checked)} />Mostrar todas las disciplinas</label>
           <SelectField label="Integrante" value={selectedMemberId} onChange={setSelectedMemberId} options={[{ value: '', label: 'Selecciona un integrante' }, ...filteredMembers.map((member) => ({ value: member.id, label: fullName(member) }))]} />
           {selectedMember && <>
-            {(() => { const stats = memberStats(selectedMember.id); return <section className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-sm"><p className="font-bold">{fullName(selectedMember)}</p><p className="mt-2 text-slate-300">{stats.evaluationState === 'not_started' ? 'La evaluación reglamentaria inicia en enero de 2027.' : stats.evaluationState === 'no_classes' ? 'Sin semanas de clase confirmadas para evaluar.' : `Asistencia en el rango seleccionado: ${stats.completedWeeks}/${stats.requiredAttendances} semanas (${stats.percent}%).`}</p></section> })()}
-            {sessions.filter((session) => memberPractices(selectedMember.id, session.discipline_id)).map((session) => <article key={session.id} className="rounded-2xl border border-white/10 bg-white/5 p-3"><p className="mb-2 text-xs text-slate-300">{sessionName(session)}</p>{attendanceSelector(selectedMember, session)}</article>)}
+            {(() => { const stats = memberStats(selectedMember.id); return <section className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-sm"><p className="font-bold">{fullName(selectedMember)}</p><p className="mt-2 text-slate-300">{stats.evaluationState !== 'evaluated' ? 'Sin clases evaluables' : `${stats.completedWeeks}/${stats.requiredAttendances} semanas cumplidas · ${stats.percent}%`}</p></section> })()}
+            {sessions.filter((session) => showAllMembers || memberPractices(selectedMember.id, session.discipline_id)).map((session) => <article key={session.id} className="rounded-2xl border border-white/10 bg-white/5 p-3"><p className="mb-2 text-xs text-slate-300">{sessionName(session)}</p>{attendanceSelector(selectedMember, session)}</article>)}
           </>}
         </>}
         {tab === 'calendario' && <>
@@ -243,14 +248,14 @@ export default function AdminAttendancePage() {
             </div>
           </section>
           {sessions.map((session) => <article key={session.id} className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div><p className="font-bold">{sessionName(session)}</p><p className="mt-1 text-xs text-slate-300">{session.status === 'cancelled' ? 'Cancelada' : session.counts_for_eligibility ? 'Realizada · cuenta para elegibilidad' : 'Programada · no cuenta todavía'}</p></div>
-            {canEdit && <div className="grid grid-cols-2 gap-2">
-              {session.status === 'active' && <button type="button" disabled={savingKey === session.id || session.session_date > todayIso() || session.session_date < ATTENDANCE_2027_START} onClick={() => updateSession(session, { counts_for_eligibility: !session.counts_for_eligibility })} className="rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-xs font-bold text-cyan-100 disabled:opacity-40">{session.counts_for_eligibility ? 'Quitar del cálculo' : 'Confirmar realizada'}</button>}
-              <button type="button" disabled={savingKey === session.id} onClick={() => updateSession(session, { status: session.status === 'cancelled' ? 'active' : 'cancelled' })} className="rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs font-bold text-amber-100 disabled:opacity-40">{session.status === 'cancelled' ? 'Reabrir' : 'Cancelar clase'}</button>
-            </div>}
+            <div><p className="font-bold">{sessionName(session)}</p><p className="mt-1 text-xs text-slate-300">{session.status === 'cancelled' ? 'Cancelada' : session.counts_for_eligibility ? 'Realizada' : 'Programada'}</p></div>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => { setSelectedSessionId(session.id); setTab('pasar_lista') }} className="rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-xs font-bold text-white">Ver lista</button>
+              {canEdit && session.status === 'active' && <button type="button" disabled={savingKey === session.id || session.session_date > todayIso()} onClick={() => updateSession(session, { counts_for_eligibility: !session.counts_for_eligibility })} className="rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-xs font-bold text-cyan-100 disabled:opacity-40">{session.counts_for_eligibility ? 'Marcar pendiente' : 'Confirmar realizada'}</button>}
+              {canEdit && <button type="button" disabled={savingKey === session.id} onClick={() => updateSession(session, { status: session.status === 'cancelled' ? 'active' : 'cancelled' })} className="rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs font-bold text-amber-100 disabled:opacity-40">{session.status === 'cancelled' ? 'Reabrir' : 'Cancelar clase'}</button>}
+            </div>
           </article>)}
           {sessions.length === 0 && <p className="rounded-2xl border border-white/10 p-4 text-sm text-slate-300">No hay fechas en el rango seleccionado.</p>}
-          <p className="text-xs leading-5 text-slate-400">Solo una clase confirmada y ya celebrada puede contar en el requisito semanal; las canceladas no cuentan. Los entrenamientos anteriores a 2027 se conservan para consulta.</p>
         </>}
         <SecondaryButton onClick={exportExcel}>Exportar Excel del rango</SecondaryButton>
       </>}

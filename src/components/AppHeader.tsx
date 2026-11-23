@@ -36,16 +36,17 @@ export default function AppHeader({
   const [alerts, setAlerts] = useState<AlertRow[]>([])
   const [showAlertPanel, setShowAlertPanel] = useState(false)
 
-  useEffect(() => {
-    if (!showAlerts) return
-    loadAlerts()
-  }, [showAlerts])
-
   async function loadAlerts() {
     const { data, error } = await supabase.rpc('aekia_current_alerts')
     if (error || !Array.isArray(data)) { setAlerts([]); return }
     setAlerts(data.filter((item): item is AlertRow => Boolean(item?.key && item?.title)))
   }
+
+  useEffect(() => {
+    if (!showAlerts) return
+    const timer = window.setTimeout(() => { void loadAlerts() }, 0)
+    return () => window.clearTimeout(timer)
+  }, [showAlerts])
 
   async function dismissAlert(key: string) {
     await supabase.rpc('aekia_dismiss_alert', { p_alert_key: key })

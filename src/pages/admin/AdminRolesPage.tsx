@@ -71,7 +71,7 @@ export default function AdminRolesPage() {
     setRolePermissions((rolePermissionData ?? []) as RolePermissionRow[])
   }
 
-  useEffect(() => { loadData() }, [statusFilter])
+  useEffect(() => { const timer = window.setTimeout(() => { void loadData() }, 0); return () => window.clearTimeout(timer) }, [statusFilter])
 
   function openRole(role: RoleRow) {
     setSelectedRole(role)

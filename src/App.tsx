@@ -20,6 +20,8 @@ import AdminComplaintsPage from './pages/admin/AdminComplaintsPage'
 import AdminAccessListsPage from './pages/admin/AdminAccessListsPage'
 import AdminRolesPage from './pages/admin/AdminRolesPage'
 import AdminAuditLogsPage from './pages/admin/AdminAuditLogsPage'
+import AdminRegistrationRequestsPage from './pages/admin/AdminRegistrationRequestsPage'
+import AdminGuardiansPage from './pages/admin/AdminGuardiansPage'
 import ProtectedRoute from './components/ProtectedRoute'
 
 export default function App() {
@@ -58,6 +60,16 @@ export default function App() {
             <MembersAdminPage />
           </ProtectedRoute>
         }
+      />
+
+      <Route
+        path="/admin/registration-requests"
+        element={<ProtectedRoute><AdminRegistrationRequestsPage /></ProtectedRoute>}
+      />
+
+      <Route
+        path="/admin/guardians"
+        element={<ProtectedRoute><AdminGuardiansPage /></ProtectedRoute>}
       />
 
       <Route

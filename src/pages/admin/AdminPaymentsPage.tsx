@@ -127,7 +127,7 @@ export default function AdminPaymentsPage() {
     setLoading(false)
   }
 
-  useEffect(() => { loadData() }, [year])
+  useEffect(() => { const timer = window.setTimeout(() => { void loadData() }, 0); return () => window.clearTimeout(timer) }, [year])
 
   function getPayment(memberId: string, periodId: string) {
     return payments.find((payment) => payment.member_id === memberId && payment.period_id === periodId)

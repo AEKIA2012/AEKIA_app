@@ -43,7 +43,7 @@ export default function AdminComplaintsPage() {
     setRows((data ?? []) as unknown as ComplaintRow[])
   }
 
-  useEffect(() => { loadRows() }, [statusFilter])
+  useEffect(() => { const timer = window.setTimeout(() => { void loadRows() }, 0); return () => window.clearTimeout(timer) }, [statusFilter])
 
   const openCount = useMemo(() => rows.filter((row) => row.status !== 'closed').length, [rows])
 
