@@ -67,20 +67,10 @@ export function permissionImplies(
   return false
 }
 
-const IMPERSONATE_KEY = 'aekia_visualizar_com_profile_id'
-
 export async function loadPermissionCodes() {
-  const impersonatedProfileId = localStorage.getItem(IMPERSONATE_KEY)
-
-  const { data, error } = impersonatedProfileId
-    ? await supabase.rpc('aekia_permission_codes_for_profile', { p_profile_id: impersonatedProfileId })
-    : await supabase.rpc('aekia_current_permission_codes')
+  const { data, error } = await supabase.rpc('aekia_current_permission_codes')
 
   if (error) {
-    if (impersonatedProfileId) {
-      localStorage.removeItem(IMPERSONATE_KEY)
-      localStorage.removeItem('aekia_visualizar_com_label')
-    }
     throw error
   }
 

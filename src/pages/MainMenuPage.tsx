@@ -104,7 +104,7 @@ function DashboardCard({ dashboard }: { dashboard: DashboardState }) {
           <div>
             <p className="text-sm font-bold text-white">Asistencia reglamentaria</p>
             <p className="mt-1 text-xs leading-5 text-slate-300">
-              Últimos 3 meses: {dashboard.completedWeeks}/{dashboard.requiredAttendances || dashboard.totalWeeks} asistencias reglamentarias cumplidas. Se piden hasta 3 asistencias puntuales por mes; si hubo menos clases, baja el requerido. Los retardos no cuentan.
+              Últimos 3 meses: {dashboard.completedWeeks}/{dashboard.requiredAttendances || dashboard.totalWeeks} semanas reglamentarias cumplidas. Se piden hasta 3 por mes; si hubo menos clases, baja el requerido. Los retardos no cuentan.
             </p>
           </div>
           <div className={`rounded-2xl border p-3 ${hasDebt ? 'border-red-400/30 bg-red-400/10 text-red-100' : 'border-emerald-400/30 bg-emerald-400/10 text-emerald-100'}`}>
@@ -215,7 +215,7 @@ export default function MainMenuPage() {
     const own = profileData as ProfileOption | null
     setOwnProfile(own)
 
-    const selectedId = impersonatedProfileId || localStorage.getItem(IMPERSONATE_KEY) || ''
+    const selectedId = localStorage.getItem(IMPERSONATE_KEY) || ''
     let dashboardProfile = own
     let effectivePermissions = ownPermissions
 
@@ -286,30 +286,19 @@ export default function MainMenuPage() {
     navigate('/login')
   }
 
-  async function handleImpersonationChange(profileId: string) {
+  function handleImpersonationChange(profileId: string) {
     const normalizedId = !profileId || profileId === ownProfile?.id ? '' : profileId
     setImpersonatedProfileId(normalizedId)
+    setPermissions(normalizedId ? ['member'] : ownPermissions)
     setProfileSearch('')
-
     if (!normalizedId) {
       localStorage.removeItem(IMPERSONATE_KEY)
       localStorage.removeItem(IMPERSONATE_LABEL_KEY)
-      setPermissions(ownPermissions)
-      await loadDashboardForMember(ownProfile?.member_id)
-      return
-    }
-
-    const selected = profiles.find((profile) => profile.id === normalizedId)
-    localStorage.setItem(IMPERSONATE_KEY, normalizedId)
-    localStorage.setItem(IMPERSONATE_LABEL_KEY, selected ? profileOptionLabel(selected) : '')
-
-    const { data: selectedPermissions, error: permissionError } = await supabase.rpc('aekia_permission_codes_for_profile', { p_profile_id: normalizedId })
-    if (!permissionError && Array.isArray(selectedPermissions)) {
-      setPermissions(selectedPermissions.filter((item): item is string => typeof item === 'string'))
     } else {
-      setPermissions(['member'])
+      const selected = profiles.find((profile) => profile.id === normalizedId)
+      localStorage.setItem(IMPERSONATE_KEY, normalizedId)
+      localStorage.setItem(IMPERSONATE_LABEL_KEY, selected ? profileOptionLabel(selected) : '')
     }
-    await loadDashboardForMember(selected?.member_id)
   }
 
   async function dismissAlert(key: string) {

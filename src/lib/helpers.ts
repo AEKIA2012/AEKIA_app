@@ -3,7 +3,7 @@ export type SelectOption = {
   label: string
 }
 
-export const AEKIA_BUILD_VERSION = 'patch-v15-publicacion-final'
+export const AEKIA_BUILD_VERSION = 'patch-v13-cierre-final'
 
 export function emptyToNull(value: string) {
   const cleaned = value.trim()
@@ -248,7 +248,7 @@ export function regulatoryAttendanceStats(args: {
   records: Array<{ session_id: string; attendance_status: string | null | undefined }>
   disciplineIds?: string[]
 }): RegulatoryAttendanceStats {
-  const disciplineSet = new Set((args.disciplineIds ?? []).filter(Boolean).map(String))
+  const disciplineSet = new Set((args.disciplineIds ?? []).filter(Boolean))
   const relevantSessions = args.sessions.filter((session) => {
     if (!session.session_date) return false
     if (disciplineSet.size === 0) return true
@@ -256,50 +256,47 @@ export function regulatoryAttendanceStats(args: {
   })
 
   const sessionById = new Map(relevantSessions.map((session) => [session.id, session]))
-  const classSessionIdsByMonth = new Map<string, Set<string>>()
-  const presentSessionIdsByMonth = new Map<string, Set<string>>()
-  const punctualSessionIds = new Set<string>()
+  const classWeeksByMonth = new Map<string, Set<string>>()
+  const completedWeeksByMonth = new Map<string, Set<string>>()
+  let punctualAttendances = 0
+
+  for (const session of relevantSessions) {
+    const monthKey = monthKeyFromIso(session.session_date)
+    const weekKey = weekKeyFromIso(session.session_date)
+    if (!monthKey || !weekKey) continue
+    if (!classWeeksByMonth.has(monthKey)) classWeeksByMonth.set(monthKey, new Set())
+    classWeeksByMonth.get(monthKey)?.add(weekKey)
+  }
 
   for (const record of args.records) {
+    if (record.attendance_status !== 'present') continue
     const session = sessionById.get(record.session_id)
     if (!session?.session_date) continue
     const monthKey = monthKeyFromIso(session.session_date)
-    if (!monthKey) continue
-
-    if (!classSessionIdsByMonth.has(monthKey)) {
-      classSessionIdsByMonth.set(monthKey, new Set<string>())
-    }
-    classSessionIdsByMonth.get(monthKey)?.add(record.session_id)
-
-    if (record.attendance_status === 'present') {
-      punctualSessionIds.add(record.session_id)
-      if (!presentSessionIdsByMonth.has(monthKey)) {
-        presentSessionIdsByMonth.set(monthKey, new Set<string>())
-      }
-      presentSessionIdsByMonth.get(monthKey)?.add(record.session_id)
-    }
+    const weekKey = weekKeyFromIso(session.session_date)
+    if (!monthKey || !weekKey) continue
+    punctualAttendances += 1
+    if (!completedWeeksByMonth.has(monthKey)) completedWeeksByMonth.set(monthKey, new Set())
+    completedWeeksByMonth.get(monthKey)?.add(weekKey)
   }
 
-  // Regla AEKIA de elegibilidad:
-  // - Solo cuentan asistencias puntuales; los retardos no cuentan.
-  // - Por cada mes del rango se requieren hasta 3 asistencias puntuales.
-  // - Si ese mes tuvo menos clases registradas para el miembro, el requerido baja.
-  // - Las asistencias extra de un mes no compensan otro mes.
-  // Nota: se calculan clases registradas para el miembro, no sesiones globales de otras disciplinas.
+  // Regla AEKIA para elegibilidad:
+  // - Solo cuenta asistencia puntual; los retardos no cuentan.
+  // - Una asistencia puntual cumple la semana, aunque existan varias clases en esa semana.
+  // - Por cada mes del rango se piden hasta 3 semanas cumplidas.
+  // - Si en ese mes hubo menos de 3 semanas reales con clase, el requerido baja.
   let totalClassWeeks = 0
   let requiredAttendances = 0
   let completedWeeks = 0
 
-  for (const [monthKey, classSessionIds] of classSessionIdsByMonth.entries()) {
-    const classCount = classSessionIds.size
-    const monthlyRequired = Math.min(3, classCount)
-    const monthlyCompleted = Math.min(presentSessionIdsByMonth.get(monthKey)?.size ?? 0, monthlyRequired)
-    totalClassWeeks += classCount
+  for (const [monthKey, classWeeks] of classWeeksByMonth.entries()) {
+    const monthlyRequired = Math.min(3, classWeeks.size)
+    const monthlyCompleted = Math.min(completedWeeksByMonth.get(monthKey)?.size ?? 0, monthlyRequired)
+    totalClassWeeks += classWeeks.size
     requiredAttendances += monthlyRequired
     completedWeeks += monthlyCompleted
   }
 
   const percent = requiredAttendances > 0 ? Math.min(100, Math.round((completedWeeks / requiredAttendances) * 100)) : 100
-  return { totalClassWeeks, completedWeeks, requiredAttendances, punctualAttendances: punctualSessionIds.size, percent }
+  return { totalClassWeeks, completedWeeks, requiredAttendances, punctualAttendances, percent }
 }
-
