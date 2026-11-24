@@ -25,6 +25,8 @@ export const adminRoutePermissions: Array<{
   startsWith: string
   permission: PermissionCode
 }> = [
+  { startsWith: '/admin/registration-requests', permission: 'members.edit' },
+  { startsWith: '/admin/guardians', permission: 'members.edit' },
   { startsWith: '/admin/members/new', permission: 'members.edit' },
   { startsWith: '/admin/members/', permission: 'members.view' },
   { startsWith: '/admin/members', permission: 'members.view' },
@@ -103,7 +105,8 @@ export function useCurrentAccess(): CurrentAccess {
   }, [])
 
   useEffect(() => {
-    refreshAccess()
+    const timer = window.setTimeout(() => { void refreshAccess() }, 0)
+    return () => window.clearTimeout(timer)
   }, [refreshAccess])
 
   const can = useCallback(

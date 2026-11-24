@@ -3,7 +3,8 @@ export type SelectOption = {
   label: string
 }
 
-export const AEKIA_BUILD_VERSION = 'patch-v13-cierre-final'
+export const AEKIA_BUILD_VERSION = 'patch-v14-2027'
+export const ATTENDANCE_2027_START = '2027-01-01'
 
 export function emptyToNull(value: string) {
   const cleaned = value.trim()
@@ -235,22 +236,42 @@ export function monthKeyFromIso(value: string | null | undefined) {
   return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text.slice(0, 7) : ''
 }
 
+// Una semana es lunes-domingo. Las semanas que cruzan de mes se asignan
+// al mes del lunes, excepto el primer tramo del nuevo periodo 2027.
+export function attendanceWeekMonthKey(value: string) {
+  const date = new Date(`${value.slice(0, 10)}T00:00:00Z`)
+  if (Number.isNaN(date.getTime())) return ''
+  date.setUTCDate(date.getUTCDate() - ((date.getUTCDay() + 6) % 7))
+  const monday = date.toISOString().slice(0, 10)
+  return monthKeyFromIso(monday < ATTENDANCE_2027_START ? ATTENDANCE_2027_START : monday)
+}
+
+export function attendanceEvaluationStart() {
+  const now = new Date()
+  const start = new Date(Date.UTC(now.getFullYear(), now.getMonth() - 2, 1))
+  return start.toISOString().slice(0, 10) < ATTENDANCE_2027_START
+    ? ATTENDANCE_2027_START
+    : start.toISOString().slice(0, 10)
+}
+
 export type RegulatoryAttendanceStats = {
   totalClassWeeks: number
   completedWeeks: number
   requiredAttendances: number
   punctualAttendances: number
   percent: number
+  evaluationState: 'not_started' | 'no_classes' | 'evaluated'
 }
 
 export function regulatoryAttendanceStats(args: {
-  sessions: Array<{ id: string; session_date: string | null; discipline_id?: string | null }>
+  sessions: Array<{ id: string; session_date: string | null; discipline_id?: string | null; counts_for_eligibility?: boolean | null }>
   records: Array<{ session_id: string; attendance_status: string | null | undefined }>
   disciplineIds?: string[]
 }): RegulatoryAttendanceStats {
   const disciplineSet = new Set((args.disciplineIds ?? []).filter(Boolean))
   const relevantSessions = args.sessions.filter((session) => {
-    if (!session.session_date) return false
+    if (!session.session_date || session.session_date < ATTENDANCE_2027_START || session.session_date > todayIso()) return false
+    if (session.counts_for_eligibility !== true) return false
     if (disciplineSet.size === 0) return true
     return disciplineSet.has(String(session.discipline_id ?? ''))
   })
@@ -261,7 +282,8 @@ export function regulatoryAttendanceStats(args: {
   let punctualAttendances = 0
 
   for (const session of relevantSessions) {
-    const monthKey = monthKeyFromIso(session.session_date)
+    if (!session.session_date) continue
+    const monthKey = attendanceWeekMonthKey(session.session_date)
     const weekKey = weekKeyFromIso(session.session_date)
     if (!monthKey || !weekKey) continue
     if (!classWeeksByMonth.has(monthKey)) classWeeksByMonth.set(monthKey, new Set())
@@ -272,7 +294,7 @@ export function regulatoryAttendanceStats(args: {
     if (record.attendance_status !== 'present') continue
     const session = sessionById.get(record.session_id)
     if (!session?.session_date) continue
-    const monthKey = monthKeyFromIso(session.session_date)
+    const monthKey = attendanceWeekMonthKey(session.session_date)
     const weekKey = weekKeyFromIso(session.session_date)
     if (!monthKey || !weekKey) continue
     punctualAttendances += 1
@@ -283,20 +305,21 @@ export function regulatoryAttendanceStats(args: {
   // Regla AEKIA para elegibilidad:
   // - Solo cuenta asistencia puntual; los retardos no cuentan.
   // - Una asistencia puntual cumple la semana, aunque existan varias clases en esa semana.
-  // - Por cada mes del rango se piden hasta 3 semanas cumplidas.
-  // - Si en ese mes hubo menos de 3 semanas reales con clase, el requerido baja.
+  // - Cada mes requiere 75% de las semanas realmente ofrecidas (redondeo hacia arriba).
+  // - Las sesiones programadas/canceladas no cuentan.
   let totalClassWeeks = 0
   let requiredAttendances = 0
   let completedWeeks = 0
 
   for (const [monthKey, classWeeks] of classWeeksByMonth.entries()) {
-    const monthlyRequired = Math.min(3, classWeeks.size)
+    const monthlyRequired = Math.ceil(classWeeks.size * 0.75)
     const monthlyCompleted = Math.min(completedWeeksByMonth.get(monthKey)?.size ?? 0, monthlyRequired)
     totalClassWeeks += classWeeks.size
     requiredAttendances += monthlyRequired
     completedWeeks += monthlyCompleted
   }
 
-  const percent = requiredAttendances > 0 ? Math.min(100, Math.round((completedWeeks / requiredAttendances) * 100)) : 100
-  return { totalClassWeeks, completedWeeks, requiredAttendances, punctualAttendances, percent }
+  const evaluationState = todayIso() < ATTENDANCE_2027_START ? 'not_started' : requiredAttendances === 0 ? 'no_classes' : 'evaluated'
+  const percent = requiredAttendances > 0 ? Math.min(100, Math.round((completedWeeks / requiredAttendances) * 100)) : 0
+  return { totalClassWeeks, completedWeeks, requiredAttendances, punctualAttendances, percent, evaluationState }
 }

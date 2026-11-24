@@ -29,10 +29,11 @@ export default function LoginPage() {
 
   useEffect(() => {
     const reason = searchParams.get('reason')
-
-    if (reason === 'password_changed') {
+    if (reason !== 'password_changed') return
+    const timer = window.setTimeout(() => {
       setInfoMessage('Password actualizado correctamente. Ya puedes entrar con tu nuevo password.')
-    }
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [searchParams])
 
   async function getEmailStatus(normalizedEmail: string): Promise<LoginEmailStatus> {
@@ -167,7 +168,13 @@ export default function LoginPage() {
       return
     }
 
-    setInfoMessage('Se notificó a un administrador para reiniciar tu password.')
+    setLoading(true)
+    const {error}=await supabase.auth.resetPasswordForEmail(normalizedEmail,{
+      redirectTo:`${window.location.origin}/change-password?recovery=1`,
+    })
+    setLoading(false)
+    if(error){setErrorMessage('No se pudo enviar el correo de recuperación. Intenta nuevamente.');return}
+    setInfoMessage('Si el correo tiene acceso AEKIA, recibirás instrucciones para cambiar tu contraseña.')
   }
 
   return (

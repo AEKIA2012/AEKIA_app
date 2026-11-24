@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import ModuleShell from '../components/ModuleShell'
+import SaveConfirmation from '../components/SaveConfirmation'
 import { Field, ModalPanel, PrimaryButton, SelectField, StatusBadge, TextArea } from '../components/FormControls'
 import { supabase } from '../lib/supabaseClient'
 import { formatDate } from '../lib/helpers'
@@ -52,7 +53,7 @@ export default function ComplaintsPage() {
     setRows((data ?? []) as ComplaintRow[])
   }
 
-  useEffect(() => { loadComplaints() }, [statusFilter, loadingProfile, profile, profileError])
+  useEffect(() => { const timer = window.setTimeout(() => { void loadComplaints() }, 0); return () => window.clearTimeout(timer) }, [statusFilter, loadingProfile, profile, profileError])
 
   async function handleSubmit() {
     if (!profile) return
@@ -75,7 +76,7 @@ export default function ComplaintsPage() {
 
   return (
     <ModuleShell title="Quejas y sugerencias" subtitle="Envía solicitudes y consulta tu historial." icon="/icons/icon-complaints.png" moduleType="Usuario" version="Quejas usuario v06">
-      {message && <section className="rounded-3xl border border-cyan-400/30 bg-cyan-400/10 p-4 text-sm text-cyan-100">{message}</section>}
+      <SaveConfirmation message={message} onClose={() => setMessage(null)} />
       {errorMessage && <section className="rounded-3xl border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-100">{errorMessage}</section>}
 
       <section className="rounded-[2rem] border border-white/10 bg-white/5 p-5 shadow-2xl">

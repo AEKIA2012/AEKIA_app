@@ -28,9 +28,12 @@ type DashboardState = {
   paymentDebtCount: number
   eventEligible: boolean
   attendanceOk: boolean
+  evaluationState: 'not_started' | 'no_classes' | 'evaluated'
   paymentsOk: boolean
   loading: boolean
 }
+
+type ActiveRole = { id: string; code: string; name: string }
 
 type ProfileOption = {
   id: string
@@ -58,6 +61,8 @@ const userMenuItems: MenuItem[] = [
 
 const adminMenuItems: MenuItem[] = [
   { title: 'Lista de miembros', description: 'Consulta, edita y administra miembros.', icon: '/icons/icon-members.png', path: '/admin/members', permission: 'members.view' },
+  { title: 'Solicitudes de registro', description: 'Revisa solicitudes de nuevos integrantes.', icon: '/icons/icon-members.png', path: '/admin/registration-requests', permission: 'members.edit' },
+  { title: 'Familia y tutores', description: 'Administra vínculos familiares.', icon: '/icons/icon-members.png', path: '/admin/guardians', permission: 'members.edit' },
   { title: 'Control de asistencia', description: 'Registra y consulta asistencia de miembros.', icon: '/icons/icon-attendance-admin.png', path: '/admin/attendance', permission: 'attendance.view_admin' },
   { title: 'Control de pagos', description: 'Registra mensualidades, adeudos y pagos.', icon: '/icons/icon-payments-admin.png', path: '/admin/payments', permission: 'payments.view_admin' },
   { title: 'Gestión de eventos', description: 'Crea eventos, exámenes y seminarios.', icon: '/icons/icon-events-admin.png', path: '/admin/events', permission: 'events.view_admin' },
@@ -88,6 +93,8 @@ function DashboardCard({ dashboard }: { dashboard: DashboardState }) {
   const hasDebt = dashboard.paymentDebtCount > 0
   const percent = Math.min(Math.max(dashboard.attendancePercent, 0), 100)
   const eligible = dashboard.eventEligible
+  const hasEvaluation = dashboard.evaluationState === 'evaluated'
+  const pendingMessage = 'Sin clases evaluables'
 
   return (
     <section className="mt-5 rounded-[2rem] border border-cyan-400/20 bg-gradient-to-br from-cyan-400/15 to-white/5 p-5 shadow-2xl">
@@ -98,22 +105,22 @@ function DashboardCard({ dashboard }: { dashboard: DashboardState }) {
             <circle cx="18" cy="18" r="15.5" fill="none" stroke="rgba(148,163,184,.25)" strokeWidth="4" />
             <circle cx="18" cy="18" r="15.5" fill="none" stroke="currentColor" strokeDasharray={`${percent} 100`} strokeLinecap="round" strokeWidth="4" className="text-cyan-300" />
           </svg>
-          <span className="absolute text-lg font-black text-white">{dashboard.loading ? '...' : `${percent}%`}</span>
+          <span className="absolute text-lg font-black text-white">{dashboard.loading ? '...' : hasEvaluation ? `${percent}%` : '—'}</span>
         </div>
         <div className="min-w-0 space-y-3">
           <div>
             <p className="text-sm font-bold text-white">Asistencia reglamentaria</p>
             <p className="mt-1 text-xs leading-5 text-slate-300">
-              Últimos 3 meses: {dashboard.completedWeeks}/{dashboard.requiredAttendances || dashboard.totalWeeks} semanas reglamentarias cumplidas. Se piden hasta 3 por mes; si hubo menos clases, baja el requerido. Los retardos no cuentan.
+              {hasEvaluation ? `${dashboard.completedWeeks}/${dashboard.requiredAttendances} semanas cumplidas · Últimos 3 meses` : pendingMessage}
             </p>
           </div>
           <div className={`rounded-2xl border p-3 ${hasDebt ? 'border-red-400/30 bg-red-400/10 text-red-100' : 'border-emerald-400/30 bg-emerald-400/10 text-emerald-100'}`}>
             <p className="text-sm font-bold">{hasDebt ? 'Tienes adeudo' : 'Sin adeudo actual'}</p>
             <p className="mt-1 text-xs opacity-90">{hasDebt ? `${dashboard.paymentDebtCount} mensualidad(es) u otro(s) cargo(s) vencido(s).` : 'Mensualidades y otros cargos vencidos al corriente.'}</p>
           </div>
-          <div className={`rounded-2xl border p-3 ${eligible ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-100' : 'border-red-400/30 bg-red-400/10 text-red-100'}`}>
-            <p className="text-sm font-bold">{eligible ? 'Apto para eventos, exámenes, torneos, etc.' : 'No apto para eventos, exámenes, torneos, etc.'}</p>
-            <p className="mt-1 text-xs opacity-90">{eligible ? 'Cumple asistencia reglamentaria y pagos vencidos.' : 'Debe cumplir asistencia puntual reglamentaria y no tener adeudos vencidos.'}</p>
+          <div className={`rounded-2xl border p-3 ${!hasEvaluation ? 'border-amber-400/30 bg-amber-400/10 text-amber-100' : eligible ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-100' : 'border-red-400/30 bg-red-400/10 text-red-100'}`}>
+            <p className="text-sm font-bold">{!hasEvaluation ? 'Elegibilidad sin evaluación' : eligible ? 'Apto para eventos' : 'No apto para eventos'}</p>
+            {hasEvaluation && <p className="mt-1 text-xs opacity-90">{eligible ? 'Requisitos al corriente' : 'Revisar asistencia y pagos'}</p>}
           </div>
         </div>
       </div>
@@ -130,6 +137,7 @@ const emptyDashboard: DashboardState = {
   paymentDebtCount: 0,
   eventEligible: false,
   attendanceOk: false,
+  evaluationState: 'not_started',
   paymentsOk: false,
   loading: true,
 }
@@ -148,6 +156,7 @@ function alertClasses(type: AlertRow['type']) {
 export default function MainMenuPage() {
   const navigate = useNavigate()
   const [displayName, setDisplayName] = useState('Usuario AEKIA')
+  const [roleNames, setRoleNames] = useState<string[]>([])
   const [ownPermissions, setOwnPermissions] = useState<string[]>([])
   const [permissions, setPermissions] = useState<string[]>([])
   const [showAlerts, setShowAlerts] = useState(false)
@@ -175,6 +184,7 @@ export default function MainMenuPage() {
         paymentDebtCount: Number(eligibility.payment_debt_count ?? 0),
         eventEligible: Boolean(eligibility.eligible),
         attendanceOk: Boolean(eligibility.attendance_ok),
+        evaluationState: eligibility.evaluation_state,
         paymentsOk: Boolean(eligibility.payments_ok),
         loading: false,
       })
@@ -190,8 +200,13 @@ export default function MainMenuPage() {
   }
 
   async function loadProfilesForViewAs() {
-    const { data } = await supabase.rpc('aekia_available_view_as_profiles')
-    const next = Array.isArray(data) ? (data as ProfileOption[]) : []
+    const [{ data }, { data: familyData }] = await Promise.all([
+      supabase.rpc('aekia_available_view_as_profiles'),
+      supabase.rpc('aekia_family_view_as_profiles'),
+    ])
+    const combined = [...(Array.isArray(data) ? data as ProfileOption[] : []),
+      ...(Array.isArray(familyData) ? familyData as ProfileOption[] : [])]
+    const next = combined.filter((p, i) => combined.findIndex((other) => other.id === p.id) === i)
     setProfiles(next)
     const selected = localStorage.getItem(IMPERSONATE_KEY)
     if (selected && !next.some((profile) => profile.id === selected)) {
@@ -221,12 +236,18 @@ export default function MainMenuPage() {
 
     if (selectedId) {
       const { data: selectedProfileData, error: selectedProfileError } = await supabase.rpc('aekia_profile_for_view_as', { p_profile_id: selectedId })
-      const selectedProfile = Array.isArray(selectedProfileData) ? selectedProfileData[0] : selectedProfileData
+      let selectedProfile = Array.isArray(selectedProfileData) ? selectedProfileData[0] : selectedProfileData
+      if (!selectedProfile && !selectedProfileError) {
+        const {data:familyProfile} = await supabase.rpc('aekia_family_member_for_view_as',{p_member_id:selectedId})
+        selectedProfile = Array.isArray(familyProfile) ? familyProfile[0] : familyProfile
+      }
 
       if (!selectedProfileError && selectedProfile) {
         dashboardProfile = selectedProfile as ProfileOption
         const { data: selectedPermissions, error: permissionError } = await supabase.rpc('aekia_permission_codes_for_profile', { p_profile_id: selectedProfile.id })
-        if (!permissionError && Array.isArray(selectedPermissions)) {
+        if (selectedProfile.id === selectedProfile.member_id && selectedProfile.id !== own?.id) {
+          effectivePermissions = ['member']
+        } else if (!permissionError && Array.isArray(selectedPermissions)) {
           effectivePermissions = selectedPermissions.filter((item): item is string => typeof item === 'string')
         } else {
           effectivePermissions = ['member']
@@ -240,6 +261,14 @@ export default function MainMenuPage() {
     }
 
     setPermissions(effectivePermissions)
+    if (dashboardProfile?.id && selectedId && selectedId === dashboardProfile.member_id && dashboardProfile.id !== own?.id) {
+      setRoleNames(['Usuario (menor)'])
+    } else if (dashboardProfile?.id) {
+      const { data: rolesData } = await supabase.rpc('aekia_roles_for_profile', { p_profile_id: dashboardProfile.id })
+      setRoleNames(Array.isArray(rolesData) ? (rolesData as ActiveRole[]).map((item) => item.name) : [])
+    } else {
+      setRoleNames([])
+    }
     const label = dashboardProfile?.display_name || dashboardProfile?.email || 'Usuario AEKIA'
     setDisplayName(selectedId ? `Visualizando: ${label}` : label)
     await loadDashboardForMember(dashboardProfile?.member_id)
@@ -258,8 +287,8 @@ export default function MainMenuPage() {
     loadPermissions()
   }, [])
 
-  useEffect(() => { loadProfilesForViewAs() }, [ownPermissions])
-  useEffect(() => { loadProfileAndDashboard() }, [ownPermissions, impersonatedProfileId])
+  useEffect(() => { const timer = window.setTimeout(() => { void loadProfilesForViewAs() }, 0); return () => window.clearTimeout(timer) }, [ownPermissions])
+  useEffect(() => { const timer = window.setTimeout(() => { void loadProfileAndDashboard() }, 0); return () => window.clearTimeout(timer) }, [ownPermissions, impersonatedProfileId])
 
   const allowedAdminMenuItems = useMemo(() => adminMenuItems.filter((item) => !item.permission || permissionImplies(permissions, item.permission)), [permissions])
   const selectedProfile = useMemo(() => profiles.find((profile) => profile.id === impersonatedProfileId) ?? null, [profiles, impersonatedProfileId])
@@ -329,11 +358,18 @@ export default function MainMenuPage() {
 
         {permissionError && <section className="mt-5 rounded-[2rem] border border-amber-400/30 bg-amber-400/10 p-4 text-sm text-amber-100">No se pudieron cargar permisos: {permissionError}</section>}
 
+        <section className="mt-5 rounded-3xl border border-cyan-400/35 bg-cyan-400/10 px-4 py-3 shadow-lg" aria-label="Roles activos">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">{impersonatedProfileId ? 'Roles del perfil visualizado' : 'Mis roles activos'}</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {roleNames.length > 0 ? roleNames.map((role) => <span key={role} className="rounded-full border border-cyan-300/30 bg-slate-950/70 px-3 py-1.5 text-sm font-bold text-white">{role}</span>) : <span className="text-sm text-slate-300">Sin roles activos</span>}
+          </div>
+        </section>
+
         {canViewAs && (
           <section className="mt-5 rounded-[2rem] border border-emerald-400/20 bg-emerald-400/10 p-5 shadow-2xl">
             <p className="text-xs uppercase tracking-[0.3em] text-emerald-300">{canAdminImpersonate ? 'Admin' : 'Familia'}</p>
             <h2 className="mt-1 text-lg font-bold">Visualizar como usuario</h2>
-            <p className="mt-2 text-xs leading-5 text-slate-300">Busca y toca una persona para cambiar inmediatamente lo que ves.</p>
+            <p className="mt-2 text-xs leading-5 text-slate-300">Elige un perfil.</p>
             {selectedProfile && <p className="mt-3 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-100">Activo: {profileOptionLabel(selectedProfile)}</p>}
             <div className="mt-4 space-y-3">
               <Field label="Buscar" value={profileSearch} onChange={setProfileSearch} placeholder="Nombre o correo" />

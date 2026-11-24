@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import ModuleShell from '../../components/ModuleShell'
+import SaveConfirmation from '../../components/SaveConfirmation'
 import { ModalPanel, PrimaryButton, SelectField, StatusBadge, TextArea } from '../../components/FormControls'
 import { permissionImplies, useCurrentAccess } from '../../lib/accessControl'
 import { downloadXlsx } from '../../lib/exportExcel'
@@ -26,6 +27,7 @@ export default function AdminComplaintsPage() {
   const [nextStatus, setNextStatus] = useState('in_process')
   const [resolutionComment, setResolutionComment] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   async function loadRows() {
     setErrorMessage(null)
@@ -41,7 +43,7 @@ export default function AdminComplaintsPage() {
     setRows((data ?? []) as unknown as ComplaintRow[])
   }
 
-  useEffect(() => { loadRows() }, [statusFilter])
+  useEffect(() => { const timer = window.setTimeout(() => { void loadRows() }, 0); return () => window.clearTimeout(timer) }, [statusFilter])
 
   const openCount = useMemo(() => rows.filter((row) => row.status !== 'closed').length, [rows])
 
@@ -69,6 +71,7 @@ export default function AdminComplaintsPage() {
     setSelected(null)
     setResolutionComment('')
     await loadRows()
+    setSuccessMessage('Seguimiento de queja guardado correctamente.')
   }
 
   function exportExcel() {
@@ -82,6 +85,7 @@ export default function AdminComplaintsPage() {
 
   return (
     <ModuleShell title="Gestión de quejas" subtitle="Da seguimiento y cierra solicitudes." icon="/icons/icon-complaints-admin.png" moduleType="Gestión" version="Gestión quejas v07">
+      <SaveConfirmation message={successMessage} onClose={() => setSuccessMessage(null)} />
       {errorMessage && <section className="rounded-3xl border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-100">{errorMessage}</section>}
       <section className="rounded-[2rem] border border-cyan-400/20 bg-cyan-400/10 p-4 text-sm text-cyan-100">
         Alertas: {openCount > 0 ? `${openCount} queja(s) abiertas o en proceso requieren revisión.` : 'No hay quejas pendientes en el filtro actual.'}

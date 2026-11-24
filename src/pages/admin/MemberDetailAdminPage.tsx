@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import AppLogo from '../../components/AppLogo'
+import SaveConfirmation from '../../components/SaveConfirmation'
 import { permissionImplies, useCurrentAccess } from '../../lib/accessControl'
 import { supabase } from '../../lib/supabaseClient'
 
@@ -82,6 +83,7 @@ function FieldCard({
 
 export default function MemberDetailAdminPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { permissions } = useCurrentAccess()
   const canEdit = permissionImplies(permissions, 'members.edit')
   const { memberId } = useParams()
@@ -90,7 +92,8 @@ export default function MemberDetailAdminPage() {
   const [loading, setLoading] = useState(true)
   const [savingStatus, setSavingStatus] = useState(false)
   const [resettingPassword, setResettingPassword] = useState(false)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [preparingAccess, setPreparingAccess] = useState(false)
+  const [successMessage, setSuccessMessage] = useState<string | null>(() => (location.state as { aekiaSaved?: string } | null)?.aekiaSaved ?? null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   useEffect(() => {
@@ -260,6 +263,19 @@ export default function MemberDetailAdminPage() {
     setResettingPassword(false)
   }
 
+  async function handlePrepareAccess() {
+    if (!canEdit || !member || preparingAccess) return
+    setErrorMessage(null)
+    setSuccessMessage(null)
+    setPreparingAccess(true)
+    const {error} = await supabase.rpc('aekia_admin_prepare_member_access', {
+      p_member_id:member.id,
+    })
+    setPreparingAccess(false)
+    if (error) {setErrorMessage(error.message);return}
+    setSuccessMessage('Acceso preparado. El miembro puede abrir /register → Activar acceso, confirmar su correo y entrar.')
+  }
+
   const fullName = member
     ? `${member.first_names} ${member.paternal_last_name} ${member.maternal_last_name}`.trim()
     : ''
@@ -282,6 +298,7 @@ export default function MemberDetailAdminPage() {
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
+      <SaveConfirmation message={successMessage} onClose={() => { setSuccessMessage(null); navigate(location.pathname, { replace: true, state: null }) }} />
       <section className="mx-auto min-h-screen w-full max-w-md px-5 py-5">
         <header className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
@@ -369,12 +386,6 @@ export default function MemberDetailAdminPage() {
                 </span>
               </div>
 
-              {successMessage && (
-                <div className="mt-5 rounded-2xl border border-cyan-400/30 bg-cyan-400/10 p-3 text-sm leading-5 text-cyan-100">
-                  {successMessage}
-                </div>
-              )}
-
               {errorMessage && (
                 <div className="mt-5 rounded-2xl border border-red-400/30 bg-red-400/10 p-3 text-sm leading-5 text-red-100">
                   {errorMessage}
@@ -423,6 +434,15 @@ export default function MemberDetailAdminPage() {
                     {resettingPassword
                       ? 'Reiniciando password...'
                       : 'Reiniciar password a 12345678'}
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={preparingAccess}
+                    className="rounded-2xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-cyan-200 transition active:scale-[0.98] disabled:opacity-60"
+                    onClick={handlePrepareAccess}
+                  >
+                    {preparingAccess ? 'Preparando acceso...' : 'Preparar acceso de usuario'}
                   </button>
                 </div>
               )}

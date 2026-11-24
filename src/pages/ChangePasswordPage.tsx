@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import AppLogo from '../components/AppLogo'
 import PasswordInput from '../components/PasswordInput'
 import { supabase } from '../lib/supabaseClient'
@@ -9,6 +9,8 @@ const TEMPORARY_PASSWORD = '12345678'
 
 export default function ChangePasswordPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const isRecovery = searchParams.get('recovery') === '1'
 
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -63,7 +65,9 @@ export default function ChangePasswordPage() {
       return
     }
 
-    const { error: profileRpcError } = await supabase.rpc('aekia_mark_password_changed')
+    const { error: profileRpcError } = isRecovery
+      ? {error:null}
+      : await supabase.rpc('aekia_mark_password_changed')
 
     if (profileRpcError) {
       setErrorMessage(
@@ -100,10 +104,7 @@ export default function ChangePasswordPage() {
 
           <h1 className="mt-3 text-3xl font-bold">Cambiar password</h1>
 
-          <p className="mt-3 text-sm leading-6 text-slate-300">
-            Por seguridad debes cambiar tu password temporal antes de entrar a
-            la aplicación.
-          </p>
+          <p className="mt-3 text-sm leading-6 text-slate-300">{isRecovery ? 'Establece tu nueva contraseña.' : 'Cambia tu contraseña temporal para continuar.'}</p>
         </div>
 
         <div className="rounded-3xl border border-white/10 bg-white/5 p-5 shadow-2xl">

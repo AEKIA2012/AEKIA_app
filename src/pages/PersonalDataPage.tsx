@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import ModuleShell from '../components/ModuleShell'
+import SaveConfirmation from '../components/SaveConfirmation'
 import { Field, PrimaryButton, SelectField } from '../components/FormControls'
 import { supabase } from '../lib/supabaseClient'
 import { birthDateFromCurp, calculateAgeFromBirthDate, emptyToNull, getBirthdayFromCurp, isValidCurp, normalizeCurp } from '../lib/helpers'
@@ -316,7 +317,7 @@ export default function PersonalDataPage() {
     <ModuleShell title="Datos personales" subtitle="Consulta y actualiza tu información básica." icon="/icons/icon-personal-data.png" moduleType="Usuario" version="Datos personales v08">
       {loading && <section className="rounded-3xl border border-white/10 bg-white/5 p-5 text-center text-sm text-slate-300">Cargando datos personales...</section>}
       {errorMessage && <section className="rounded-3xl border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-100">{errorMessage}</section>}
-      {message && <section className="rounded-3xl border border-cyan-400/30 bg-cyan-400/10 p-4 text-sm text-cyan-100">{message}</section>}
+      <SaveConfirmation message={message} onClose={() => setMessage(null)} />
 
       {form && (
         <>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import AppLogo from '../../components/AppLogo'
 import { supabase } from '../../lib/supabaseClient'
 
@@ -67,7 +67,7 @@ const initialForm: NewMemberForm = {
   paternal_last_name: '',
   maternal_last_name: '',
   maternal_last_name_not_applicable: false,
-  work_school_name: 'No registrado',
+  work_school_name: '',
   japanese_name: '',
   birth_date: '',
   gender: '',
@@ -176,8 +176,14 @@ function FormField({
 
 export default function MemberNewAdminPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const incoming = (location.state as {registrationRequest?: {first_names:string;paternal_last_name:string;maternal_last_name:string;curp:string;email:string;work_school_name:string}} | null)?.registrationRequest
 
-  const [form, setForm] = useState<NewMemberForm>(initialForm)
+  const [form, setForm] = useState<NewMemberForm>(() => incoming ? ({
+    ...initialForm, first_names: incoming.first_names, paternal_last_name: incoming.paternal_last_name,
+    maternal_last_name: incoming.maternal_last_name, curp: incoming.curp, email: incoming.email,
+    work_school_name: incoming.work_school_name,
+  }) : initialForm)
   const [disciplinesForm, setDisciplinesForm] =
     useState<Record<DisciplineCode, DisciplineForm>>(initialDisciplines)
 
@@ -424,7 +430,7 @@ export default function MemberNewAdminPage() {
     }
 
     setSaving(false)
-    navigate(`/admin/members/${insertedMember.id}`)
+    navigate(`/admin/members/${insertedMember.id}`, { state: { aekiaSaved: 'Miembro registrado correctamente.' } })
   }
 
   return (

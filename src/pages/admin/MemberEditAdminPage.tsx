@@ -550,7 +550,7 @@ export default function MemberEditAdminPage() {
     }
 
     setSaving(false)
-    navigate(`/admin/members/${form.id}`)
+    navigate(`/admin/members/${form.id}`, { state: { aekiaSaved: 'Datos del miembro actualizados correctamente.' } })
   }
 
   return (

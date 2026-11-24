@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import ModuleShell from '../../components/ModuleShell'
+import SaveConfirmation from '../../components/SaveConfirmation'
 import { Field, ModalPanel, PrimaryButton, SecondaryButton, SelectField, StatusBadge } from '../../components/FormControls'
 import { permissionImplies, useCurrentAccess } from '../../lib/accessControl'
 import { supabase } from '../../lib/supabaseClient'
@@ -215,7 +216,7 @@ export default function AdminAccessListsPage() {
     setExternalPeople((externalData ?? []) as ExternalPersonRow[])
   }
 
-  useEffect(() => { loadLists(); loadMemberOptions() }, [statusFilter])
+  useEffect(() => { const timer = window.setTimeout(() => { void loadLists(); void loadMemberOptions() }, 0); return () => window.clearTimeout(timer) }, [statusFilter])
 
   const availableMemberOptions = useMemo(() => {
     const assignedIds = new Set(members.map((member) => member.member_id))
@@ -424,7 +425,7 @@ export default function AdminAccessListsPage() {
   return (
     <ModuleShell title="Listas de acceso" subtitle="Administra listas, miembros, externos y exportación japonesa." icon="/icons/icon-access-lists.png" moduleType="Gestión" version="Listas acceso v13">
       {errorMessage && <section className="rounded-3xl border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-100">{errorMessage}</section>}
-      {successMessage && <section className="rounded-3xl border border-emerald-400/30 bg-emerald-400/10 p-4 text-sm text-emerald-100">{successMessage}</section>}
+      <SaveConfirmation message={successMessage} onClose={() => setSuccessMessage(null)} />
 
       {canEdit && <section className="rounded-[2rem] border border-white/10 bg-white/5 p-5 shadow-2xl"><p className="text-xs uppercase tracking-[0.3em] text-cyan-300">Nueva lista</p><div className="mt-4 space-y-4"><Field label="Nombre" value={newName} onChange={setNewName} /><PrimaryButton onClick={createList}>Crear lista</PrimaryButton></div></section>}
       {!canEdit && <section className="rounded-3xl border border-amber-400/30 bg-amber-400/10 p-4 text-sm leading-6 text-amber-100">Modo consulta: puedes revisar y exportar listas, pero no editarlas.</section>}

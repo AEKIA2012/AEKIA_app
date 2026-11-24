@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import ModuleShell from '../../components/ModuleShell'
+import SaveConfirmation from '../../components/SaveConfirmation'
 import { Field, ModalPanel, PrimaryButton, SecondaryButton, SelectField, StatusBadge, TextArea } from '../../components/FormControls'
 import { permissionImplies, useCurrentAccess } from '../../lib/accessControl'
 import { downloadWorkbookXlsx } from '../../lib/exportExcel'
@@ -69,6 +70,7 @@ export default function AdminPaymentsPage() {
   const [savingCell, setSavingCell] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [showChargeModal, setShowChargeModal] = useState(false)
   const [chargeMemberId, setChargeMemberId] = useState('')
   const [chargeName, setChargeName] = useState('')
@@ -125,7 +127,7 @@ export default function AdminPaymentsPage() {
     setLoading(false)
   }
 
-  useEffect(() => { loadData() }, [year])
+  useEffect(() => { const timer = window.setTimeout(() => { void loadData() }, 0); return () => window.clearTimeout(timer) }, [year])
 
   function getPayment(memberId: string, periodId: string) {
     return payments.find((payment) => payment.member_id === memberId && payment.period_id === periodId)
@@ -252,6 +254,7 @@ export default function AdminPaymentsPage() {
     await loadData()
     const refreshed = otherPayments.find((item) => item.id === selectedOtherPayment.id)
     if (refreshed) setSelectedOtherPayment(refreshed)
+    setSuccessMessage('Abono registrado correctamente.')
   }
 
   function startEditLog(log: PaymentLogRow) {
@@ -277,6 +280,7 @@ export default function AdminPaymentsPage() {
     await loadData()
     const refreshed = otherPayments.find((item) => item.id === selectedOtherPayment.id)
     if (refreshed) setSelectedOtherPayment(refreshed)
+    setSuccessMessage('Abono actualizado correctamente.')
   }
 
   async function deleteLog(logId: string) {
@@ -352,6 +356,7 @@ export default function AdminPaymentsPage() {
 
   return (
     <ModuleShell title="Control de pagos" subtitle="Administra mensualidades, cargos individuales y abonos." icon="/icons/icon-payments-admin.png" moduleType="Gestión" version="Control pagos v09">
+      <SaveConfirmation message={successMessage} onClose={() => setSuccessMessage(null)} />
       <Field label="Año" type="number" value={year} onChange={setYear} />
       <Field label="Filtro" value={searchText} onChange={setSearchText} placeholder="Buscar integrante o concepto" />
       <div className="grid grid-cols-2 gap-3">

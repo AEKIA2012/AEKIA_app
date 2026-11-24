@@ -60,7 +60,12 @@ export function useCurrentProfile() {
       const selectedProfileId = localStorage.getItem(IMPERSONATE_KEY)
       if (selectedProfileId) {
         const { data: selectedProfile, error: viewAsError } = await supabase.rpc('aekia_profile_for_view_as', { p_profile_id: selectedProfileId })
-        const profileFromRpc = Array.isArray(selectedProfile) ? selectedProfile[0] : selectedProfile
+        let profileFromRpc = Array.isArray(selectedProfile) ? selectedProfile[0] : selectedProfile
+
+        if (!viewAsError && !profileFromRpc) {
+          const {data:familyProfile,error:familyError} = await supabase.rpc('aekia_family_member_for_view_as',{p_member_id:selectedProfileId})
+          if (!familyError) profileFromRpc = Array.isArray(familyProfile) ? familyProfile[0] : familyProfile
+        }
 
         if (!viewAsError && profileFromRpc?.status === 'active') {
           setProfile({ ...(profileFromRpc as CurrentProfile), is_impersonated: true })

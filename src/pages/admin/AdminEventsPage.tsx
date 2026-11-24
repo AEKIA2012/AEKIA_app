@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import ModuleShell from '../../components/ModuleShell'
+import SaveConfirmation from '../../components/SaveConfirmation'
 import { Field, ModalPanel, PrimaryButton, SelectField, StatusBadge, TextArea } from '../../components/FormControls'
 import { permissionImplies, useCurrentAccess } from '../../lib/accessControl'
 import { downloadXlsx } from '../../lib/exportExcel'
@@ -45,6 +46,7 @@ export default function AdminEventsPage() {
   const [totalCost, setTotalCost] = useState('')
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   async function loadEvents() {
     setLoading(true)
@@ -67,7 +69,7 @@ export default function AdminEventsPage() {
     setRegistrations((data ?? []) as unknown as RegistrationRow[])
   }
 
-  useEffect(() => { loadEvents() }, [statusFilter])
+  useEffect(() => { const timer = window.setTimeout(() => { void loadEvents() }, 0); return () => window.clearTimeout(timer) }, [statusFilter])
 
   async function createEvent() {
     if (!canEdit) { setErrorMessage('Tu rol permite consultar eventos, pero no crearlos.'); return }
@@ -76,6 +78,7 @@ export default function AdminEventsPage() {
     if (error) { setErrorMessage(error.message); return }
     setTitle(''); setDescription(''); setEventDate(''); setLocation(''); setHasCost(false); setTotalCost('')
     await loadEvents()
+    setSuccessMessage('Evento creado correctamente.')
   }
 
   function editSelected(event: EventRow) {
@@ -95,6 +98,7 @@ export default function AdminEventsPage() {
     if (error) { setErrorMessage(error.message); return }
     setSelectedEvent(null)
     await loadEvents()
+    setSuccessMessage('Evento guardado correctamente.')
   }
 
   async function updateStatus(eventId: string, status: string, closeModal = false) {
@@ -138,6 +142,7 @@ export default function AdminEventsPage() {
 
   return (
     <ModuleShell title="Gestión de eventos" subtitle="Crea, edita, reactiva eventos y revisa registros." icon="/icons/icon-events-admin.png" moduleType="Gestión" version="Eventos gestión v09">
+      <SaveConfirmation message={successMessage} onClose={() => setSuccessMessage(null)} />
       {errorMessage && <section className="rounded-3xl border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-100">{errorMessage}</section>}
 
       {canEdit && (
